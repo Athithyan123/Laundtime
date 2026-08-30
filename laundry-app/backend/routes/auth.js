@@ -1,46 +1,95 @@
-const express = require("express");
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+import express from "express";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
 const router = express.Router();
 
-// Register
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET || "supersecretkey123laundtime2024", {
+    expiresIn: "30d"
+  });
+};
+
+// ✅ POST /api/auth/register
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
 
-    let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ msg: "User already exists" });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email and password are required" });
+    }
 
-    user = new User({ name, email, password });
-    await user.save();
+    // Check existing
+    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existing) {
+      return res.status(400).json({ message: "An account with this email already exists" });
+    }
 
-    res.json({ msg: "User registered successfully" });
+    const user = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password,
+      phone: phone || ""
+    });
+
+    const token = generateToken(user._id);
+
+    res.status(201).json({
+      message: "Account created successfully!",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role
+      }
+    });
+
   } catch (err) {
-    res.status(500).json({ msg: "Server error" });
+    console.error("Register error:", err);
+    res.status(500).json({ message: "Server error during registration", error: err.message });
   }
 });
 
-// Login
+// ✅ POST /api/auth/login
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: "Invalid credentials" });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
 
     const isMatch = await user.matchPassword(password);
-    if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
+    const token = generateToken(user._id);
+
+    res.json({
+      message: "Login successful!",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role
+      }
     });
 
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (err) {
-    res.status(500).json({ msg: "Server error" });
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error during login", error: err.message });
   }
 });
 
-module.exports = router;
-
+export default router;

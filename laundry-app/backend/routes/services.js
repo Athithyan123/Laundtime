@@ -1,24 +1,27 @@
-const express = require('express');
-const router = express.Router();
-const Service = require('../models/Service');
-const auth = require('../middleware/auth');
+import express from 'express';
+import Service from '../models/Service.js';
+import auth from '../middleware/auth.js';
 
-// Get all services
-router.get('/', async (req,res) => {
+const router = express.Router();
+
+router.get('/', async (req, res) => {
   try {
     const services = await Service.find();
     res.json(services);
-  } catch(err) { res.status(500).json({ message: 'Server error' }); }
+  } catch(err) { 
+    res.status(500).json({ message: 'Server error', error: err.message }); 
+  }
 });
 
-// Add service (admin)
-router.post('/', auth, async (req,res) => {
+router.post('/', auth, async (req, res) => {
   try {
     if(req.user.role !== 'admin') return res.status(403).json({ message: 'Not allowed' });
     const s = new Service(req.body);
     await s.save();
     res.json(s);
-  } catch(err) { res.status(500).json({ message: 'Server error' }); }
+  } catch(err) { 
+    res.status(500).json({ message: 'Server error', error: err.message }); 
+  }
 });
 
-module.exports = router;
+export default router;
