@@ -98,41 +98,45 @@ router.post("/login", async (req, res) => {
 // @route   GET /api/users/customers
 router.get("/customers", protect, isAdmin, async (req, res) => {
   try {
-    const customers = await User.find({ role: { $in: ["user", null] } })
+    // 1. Fetch registered customer accounts (all non-admin/partner/rider accounts)
+    const registeredUsers = await User.find({ 
+      role: { $nin: ["admin", "partner", "rider"] } 
+    })
       .select("-password")
       .sort({ createdAt: -1 })
       .lean();
 
-    // Fetch all orders to compute live statistics per customer
+    // 2. Fetch all orders to compute live statistics per customer and discover guest customers
     const orders = await Order.find()
       .select("user totalAmount customerDetails createdAt status trackingId items")
       .sort({ createdAt: -1 })
       .lean();
 
-    const customerList = customers.map(cust => {
+    const customerMap = new Map();
+
+    // Process registered users
+    for (const cust of registeredUsers) {
+      const emailKey = cust.email ? cust.email.toLowerCase().trim() : null;
+      const phoneKey = cust.phone ? cust.phone.trim() : null;
+
       const userOrders = orders.filter(o => 
         (o.user && String(o.user) === String(cust._id)) ||
-        (cust.email && o.customerDetails?.email && o.customerDetails.email.toLowerCase().trim() === cust.email.toLowerCase().trim()) ||
-        (cust.phone && o.customerDetails?.phone && o.customerDetails.phone.trim() === cust.phone.trim())
+        (emailKey && o.customerDetails?.email && o.customerDetails.email.toLowerCase().trim() === emailKey) ||
+        (phoneKey && o.customerDetails?.phone && o.customerDetails.phone.trim() === phoneKey)
       );
 
       const totalSpent = userOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
       const lastOrder = userOrders.length > 0 ? userOrders[0] : null;
 
-      // Extract address and city from user profile or most recent order
-      const address = cust.address || lastOrder?.customerDetails?.address || "Address not provided";
-      const city = cust.city || lastOrder?.customerDetails?.city || "Chennai";
-      const phone = cust.phone || lastOrder?.customerDetails?.phone || "N/A";
-
-      return {
-        _id: cust._id,
+      const customerObj = {
+        _id: String(cust._id),
         name: cust.name,
         email: cust.email,
-        phone,
-        address,
-        city,
+        phone: cust.phone || lastOrder?.customerDetails?.phone || "N/A",
+        address: cust.address || lastOrder?.customerDetails?.address || "Address not provided",
+        city: cust.city || lastOrder?.customerDetails?.city || "Chennai",
         createdAt: cust.createdAt,
-        loyaltyPoints: cust.loyaltyPoints || 0,
+        loyaltyPoints: cust.loyaltyPoints || Math.floor(totalSpent / 10),
         totalOrders: userOrders.length,
         totalSpent,
         lastOrderDate: lastOrder?.createdAt || null,
@@ -147,7 +151,51 @@ router.get("/customers", protect, isAdmin, async (req, res) => {
           itemCount: (o.items || []).length
         }))
       };
-    });
+
+      if (emailKey) customerMap.set(emailKey, customerObj);
+      else customerMap.set(String(cust._id), customerObj);
+    }
+
+    // 3. Extract unique customer records from orders (for guest / direct bookings)
+    for (const o of orders) {
+      const custDetails = o.customerDetails;
+      if (!custDetails || !custDetails.email) continue;
+
+      const emailKey = custDetails.email.toLowerCase().trim();
+      if (!customerMap.has(emailKey)) {
+        const matchingOrders = orders.filter(go => 
+          go.customerDetails?.email && go.customerDetails.email.toLowerCase().trim() === emailKey
+        );
+        const totalSpent = matchingOrders.reduce((sum, go) => sum + (Number(go.totalAmount) || 0), 0);
+        const lastOrder = matchingOrders[0];
+
+        customerMap.set(emailKey, {
+          _id: o.user ? String(o.user) : String(o._id),
+          name: custDetails.name || "Customer",
+          email: custDetails.email,
+          phone: custDetails.phone || "N/A",
+          address: custDetails.address || "Address not provided",
+          city: custDetails.city || "Chennai",
+          createdAt: o.createdAt,
+          loyaltyPoints: Math.floor(totalSpent / 10),
+          totalOrders: matchingOrders.length,
+          totalSpent,
+          lastOrderDate: lastOrder?.createdAt || null,
+          recentStatus: lastOrder?.status || "none",
+          recentTrackingId: lastOrder?.trackingId || null,
+          recentOrders: matchingOrders.slice(0, 5).map(go => ({
+            _id: go._id,
+            trackingId: go.trackingId,
+            totalAmount: go.totalAmount,
+            status: go.status,
+            createdAt: go.createdAt,
+            itemCount: (go.items || []).length
+          }))
+        });
+      }
+    }
+
+    const customerList = Array.from(customerMap.values());
 
     res.json({
       success: true,

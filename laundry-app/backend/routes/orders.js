@@ -32,6 +32,18 @@ router.post('/', async (req, res) => {
     } else if (customerDetails?.email || req.body?.email) {
       const emailToLookup = (customerDetails?.email || req.body?.email).toLowerCase().trim();
       userRecord = await User.findOne({ email: emailToLookup }).catch(() => null);
+      if (!userRecord) {
+        // Auto-enroll new customer account from order details
+        userRecord = await User.create({
+          name: customerDetails?.name || "Customer",
+          email: emailToLookup,
+          phone: customerDetails?.phone || "",
+          address: customerDetails?.address || "",
+          city: customerDetails?.city || "Chennai",
+          role: "user",
+          password: "customer123"
+        }).catch(() => null);
+      }
     }
 
     // Sanitize customer details with graceful defaults

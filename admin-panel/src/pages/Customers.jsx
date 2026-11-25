@@ -51,11 +51,8 @@ export default function Customers() {
     setError('');
     try {
       const res = await API.get('/users/customers');
-      if (res.data?.success) {
-        setCustomers(res.data.customers || []);
-      } else {
-        setCustomers(res.data || []);
-      }
+      const list = res.data?.customers || (Array.isArray(res.data) ? res.data : []);
+      setCustomers(list);
       setLastSync(new Date());
     } catch (err) {
       console.error('Failed to fetch customers:', err);

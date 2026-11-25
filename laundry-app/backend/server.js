@@ -108,7 +108,7 @@ app.get("/api/admin/stats", async (req, res) => {
       Order.countDocuments(),
       Order.countDocuments({ status: "delivered" }),
       Order.countDocuments({ status: "pending" }),
-      User.countDocuments({ role: { $in: ["user", null] } })
+      User.countDocuments({ role: { $nin: ["admin", "partner", "rider"] } })
     ]);
     const revenueAgg = await Order.aggregate([
       { $match: { status: { $ne: "cancelled" } } },
