@@ -1,0 +1,79 @@
+services:
+  # ─────────────────────────────────────────────────────────
+  # 1. Backend Web Service (Node.js + Express API)
+  # ─────────────────────────────────────────────────────────
+  - type: web
+    name: laundtime-backend
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: laundry-app/backend
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        value: supersecretkey123laundtime2024
+      - key: MONGODB_URI
+        sync: false # Enter your MongoDB Atlas connection string in Render dashboard
+
+  # ─────────────────────────────────────────────────────────
+  # 2. Customer Frontend App (React)
+  # ─────────────────────────────────────────────────────────
+  - type: web
+    name: laundtime-customer-app
+    runtime: static
+    plan: free
+    region: singapore
+    rootDir: laundry-app/frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: REACT_APP_API_URL
+        sync: false
+
+  # ─────────────────────────────────────────────────────────
+  # 3. Super Admin Panel (Vite + React)
+  # ─────────────────────────────────────────────────────────
+  - type: web
+    name: laundtime-admin-panel
+    runtime: static
+    plan: free
+    region: singapore
+    rootDir: admin-panel
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+
+  # ─────────────────────────────────────────────────────────
+  # 4. Partner App (React)
+  # ─────────────────────────────────────────────────────────
+  - type: web
+    name: laundtime-partner-app
+    runtime: static
+    plan: free
+    region: singapore
+    rootDir: partner-app
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: REACT_APP_API_URL
+        sync: false
