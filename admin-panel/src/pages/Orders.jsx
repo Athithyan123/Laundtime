@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import API from '../api';
+import API, { getAdminBaseURL } from '../api';
 import '../styles/orders.css';
 
 const statusColor = {
@@ -65,7 +65,8 @@ export default function Orders() {
 
     // Connect to SSE stream
     const connect = () => {
-      const es = new EventSource('http://localhost:5001/api/admin/live');
+      const sseUrl = `${getAdminBaseURL()}/admin/live`;
+      const es = new EventSource(sseUrl);
       sseRef.current = es;
 
       es.onmessage = (e) => {

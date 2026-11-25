@@ -182,6 +182,24 @@ const connectDB = async () => {
     console.log("✅ MongoDB Connected Successfully!");
     console.log(`📦 Database: ${mongoose.connection.name}`);
 
+    // Ensure default admin exists
+    try {
+      const User = (await import("./models/User.js")).default;
+      const adminExists = await User.findOne({ email: "admin@laundry.com" });
+      if (!adminExists) {
+        await User.create({
+          name: "Super Admin",
+          email: "admin@laundry.com",
+          password: "admin123",
+          phone: "9999999999",
+          role: "admin"
+        });
+        console.log("👑 Default admin account auto-created (admin@laundry.com / admin123)");
+      }
+    } catch (seedErr) {
+      console.warn("⚠️  Admin check:", seedErr.message);
+    }
+
   } catch (err) {
     console.error("\n❌ MongoDB Connection Failed:", err.message);
     console.error("\n📋 To fix this:");
@@ -199,7 +217,7 @@ const connectDB = async () => {
 // ─────────────────────────────────────────────
 const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n${"=".repeat(50)}`);
   console.log(`🎯 LaundTime Server running on port ${PORT}`);
   console.log(`📍 API:    http://localhost:${PORT}/api`);

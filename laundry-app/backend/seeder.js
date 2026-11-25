@@ -6,11 +6,16 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
+import dns from "node:dns";
 import User from "./models/User.js";
+
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (e) {}
 
 dotenv.config();
 
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/laundryapp";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb+srv://Athithyan123:Athithyan%40123@cluster0.apnmtmb.mongodb.net/laundryapp?retryWrites=true&w=majority";
 
 async function seed() {
   try {

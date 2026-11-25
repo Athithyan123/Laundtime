@@ -1,14 +1,34 @@
 import axios from 'axios';
 
-const getAdminBaseURL = () => {
-  if (import.meta.env?.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  const host = window.location.hostname;
-  return `http://${host}:5001/api`;
+export const getAdminBaseURL = () => {
+  // 1. Explicit Vite environment variable (if set in Render or .env)
+  if (import.meta.env?.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+  }
+
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+
+    // 2. Local development
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:5001/api';
+    }
+
+    // 3. Render cloud hosting - automatically route to laundtime-backend on Render
+    if (host.includes('onrender.com')) {
+      return 'https://laundtime-backend.onrender.com/api';
+    }
+
+    // 4. Custom domain with HTTPS
+    return `${window.location.protocol}//${host}/api`;
+  }
+
+  return 'http://localhost:5001/api';
 };
 
 const API = axios.create({
   baseURL: getAdminBaseURL(),
-  timeout: 10000,
+  timeout: 15000,
 });
 
 // Attach admin JWT on every request

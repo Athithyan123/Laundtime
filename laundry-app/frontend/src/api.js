@@ -5,11 +5,22 @@ import axios from 'axios';
 // ─────────────────────────────────────────────────────────
 export const getBaseURL = () => {
   // If .env overrides (e.g. on Render), use that
-  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
+  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL.replace(/\/+$/, '');
 
-  // Development / Localhost
-  const host = window.location.hostname;
-  return `http://${host}:5001/api`;
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    // Development / Localhost
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return `http://${host}:5001/api`;
+    }
+    // Render cloud hosting
+    if (host.includes('onrender.com')) {
+      return 'https://laundtime-backend.onrender.com/api';
+    }
+    return `${window.location.protocol}//${host}/api`;
+  }
+
+  return 'http://localhost:5001/api';
 };
 
 export const API_BASE_URL = getBaseURL();

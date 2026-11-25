@@ -1,8 +1,24 @@
 import axios from "axios";
 
+export const getPartnerBaseURL = () => {
+  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL.replace(/\/+$/, '');
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      return "http://localhost:5001/api";
+    }
+    if (host.includes("onrender.com")) {
+      return "https://laundtime-backend.onrender.com/api";
+    }
+    return `${window.location.protocol}//${host}/api`;
+  }
+  return "http://localhost:5001/api";
+};
+
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5001/api",
-  headers: { "Content-Type": "application/json" }
+  baseURL: getPartnerBaseURL(),
+  headers: { "Content-Type": "application/json" },
+  timeout: 15000
 });
 
 API.interceptors.request.use((config) => {
