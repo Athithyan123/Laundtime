@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useWallet } from "../context/WalletContext";
-import { API_BASE_URL } from "../api";
+import API from "../api";
 import "./Payment.css";
 
 export default function Payment() {
@@ -211,39 +211,41 @@ export default function Payment() {
       },
     };
 
+    let placedOrder = null;
     // Try posting to real backend first
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/orders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(orderPayload),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data.order;
+      const res = await API.post('/orders', orderPayload);
+      if (res.data?.success && res.data.order) {
+        placedOrder = res.data.order;
       }
     } catch (err) {
       console.error('Backend order creation failed, falling back to local:', err);
     }
 
     // Fallback: local-only order (shown when backend is down)
-    const newOrder = {
-      _id: Date.now().toString(),
-      orderNumber: `ORD${Date.now()}`,
-      trackingId: `LT${Date.now()}`,
-      items: orderPayload.items,
-      totalAmount: paymentData.amount,
-      discountApplied: paymentData.orderSummary?.discount || 0,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      customerDetails: orderPayload.customerDetails,
-      paymentMethod: paymentMethod,
-    };
-    return newOrder;
+    if (!placedOrder) {
+      placedOrder = {
+        _id: Date.now().toString(),
+        orderNumber: `ORD${Date.now()}`,
+        trackingId: `LT${Date.now()}`,
+        items: orderPayload.items,
+        totalAmount: paymentData.amount,
+        discountApplied: paymentData.orderSummary?.discount || 0,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        customerDetails: orderPayload.customerDetails,
+        paymentMethod: paymentMethod,
+      };
+    }
+
+    // Always cache locally so Order History shows it immediately
+    try {
+      const laundryOrders = JSON.parse(localStorage.getItem('laundryOrders') || '[]');
+      laundryOrders.unshift(placedOrder);
+      localStorage.setItem('laundryOrders', JSON.stringify(laundryOrders.slice(0, 50)));
+    } catch (e) {}
+
+    return placedOrder;
   };
 
   const getPaymentMethodText = (method) => {

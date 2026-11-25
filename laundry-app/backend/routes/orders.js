@@ -29,6 +29,9 @@ router.post('/', async (req, res) => {
     let userRecord = null;
     if (tokenUser) {
       userRecord = await User.findById(tokenUser).catch(() => null);
+    } else if (customerDetails?.email || req.body?.email) {
+      const emailToLookup = (customerDetails?.email || req.body?.email).toLowerCase().trim();
+      userRecord = await User.findOne({ email: emailToLookup }).catch(() => null);
     }
 
     // Sanitize customer details with graceful defaults
@@ -63,7 +66,7 @@ router.post('/', async (req, res) => {
     const finalTotal = Number(totalAmount) > 0 ? Number(totalAmount) : orderItems.reduce((s, i) => s + (i.price * i.quantity), 0);
 
     const order = new Order({
-      user: tokenUser || null,
+      user: tokenUser || userRecord?._id || null,
       items: orderItems,
       totalAmount: finalTotal,
       subtotal: subtotal ? Number(subtotal) : finalTotal,
@@ -112,21 +115,32 @@ router.post('/', async (req, res) => {
 router.get('/myorders', async (req, res) => {
   try {
     const userId = getUserFromToken(req);
-    if (!userId) {
-      return res.json({ success: true, orders: [] });
+    const paramEmail = req.query.email?.toLowerCase()?.trim();
+    const paramPhone = req.query.phone?.trim();
+
+    let user = null;
+    if (userId) {
+      user = await User.findById(userId).catch(() => null);
     }
 
-    const user = await User.findById(userId).catch(() => null);
-    if (!user) {
-      return res.json({ success: true, orders: [] });
+    const matchConditions = [];
+    if (user?._id) {
+      matchConditions.push({ user: user._id });
+    } else if (userId) {
+      matchConditions.push({ user: userId });
     }
 
-    const matchConditions = [{ user: user._id }];
-    if (user.phone && user.phone.trim()) {
-      matchConditions.push({ "customerDetails.phone": user.phone.trim() });
+    const emailToMatch = user?.email?.toLowerCase()?.trim() || paramEmail;
+    if (emailToMatch) {
+      matchConditions.push({ "customerDetails.email": emailToMatch });
     }
-    if (user.email && user.email.trim()) {
-      matchConditions.push({ "customerDetails.email": user.email.toLowerCase().trim() });
+    const phoneToMatch = user?.phone?.trim() || paramPhone;
+    if (phoneToMatch) {
+      matchConditions.push({ "customerDetails.phone": phoneToMatch });
+    }
+
+    if (matchConditions.length === 0) {
+      return res.json({ success: true, orders: [] });
     }
 
     const orders = await Order.find({ $or: matchConditions })

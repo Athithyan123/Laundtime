@@ -144,19 +144,34 @@ export default function Checkout() {
       };
 
       const res = await API.post("/orders", orderData);
-      
+      const placedOrder = res.data?.order || { ...orderData, orderNumber: `ORD${Date.now()}` };
+
+      // Cache locally for instant Order History update
+      try {
+        const laundryOrders = JSON.parse(localStorage.getItem('laundryOrders') || '[]');
+        laundryOrders.unshift(placedOrder);
+        localStorage.setItem('laundryOrders', JSON.stringify(laundryOrders.slice(0, 50)));
+      } catch (e) {}
+
       setSuccess("✅ Order placed successfully!");
       
       setTimeout(() => {
         clearCart();
-        navigate("/orders", { state: { showSuccess: true } });
-      }, 1500);
+        navigate("/orders", { 
+          state: { 
+            showSuccess: true, 
+            orderNumber: placedOrder.trackingId || placedOrder.orderNumber || placedOrder._id 
+          } 
+        });
+      }, 1200);
       
     } catch (error) {
       console.error("Order error:", error);
       
-      const laundryOrders = JSON.parse(localStorage.getItem('laundryOrders') || '[]');
-      const orderData = {
+      const placedOrder = {
+        _id: Date.now().toString(),
+        orderNumber: `ORD${Date.now()}`,
+        trackingId: `LT${Date.now()}`,
         items: cart.items,
         totalAmount: getCartTotal(),
         customerDetails: formData,
@@ -164,15 +179,21 @@ export default function Checkout() {
         status: "pending",
         createdAt: new Date().toISOString()
       };
-      laundryOrders.push(orderData);
-      localStorage.setItem('laundryOrders', JSON.stringify(laundryOrders));
+      const laundryOrders = JSON.parse(localStorage.getItem('laundryOrders') || '[]');
+      laundryOrders.unshift(placedOrder);
+      localStorage.setItem('laundryOrders', JSON.stringify(laundryOrders.slice(0, 50)));
       
-      setSuccess("✅ Order saved locally! (Backend offline)");
+      setSuccess("✅ Order saved locally!");
       
       setTimeout(() => {
         clearCart();
-        navigate("/orders", { state: { showSuccess: true } });
-      }, 1500);
+        navigate("/orders", { 
+          state: { 
+            showSuccess: true, 
+            orderNumber: placedOrder.trackingId || placedOrder.orderNumber 
+          } 
+        });
+      }, 1200);
     } finally {
       setLoading(false);
     }

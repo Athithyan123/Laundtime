@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWallet } from "../context/WalletContext";
-import { API_BASE_URL } from "../api";
+import API, { API_BASE_URL } from "../api";
 import "./Orders.css";
 
 // Service image fallbacks
@@ -29,39 +29,55 @@ export default function Orders() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setOrders([]);
-        setLoading(false);
-        return;
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      let backendOrders = [];
+
+      try {
+        const params = {};
+        if (user.email) params.email = user.email;
+        if (user.phone) params.phone = user.phone;
+
+        const res = await API.get('/orders/myorders', { params });
+        if (res.data?.success && Array.isArray(res.data.orders)) {
+          backendOrders = res.data.orders;
+        }
+      } catch (err) {
+        console.warn('Backend fetch /orders/myorders error, falling back:', err);
       }
 
-      const response = await fetch(`${API_BASE_URL}/orders/myorders`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      // Check local storage orders fallback (e.g. offline orders or instant UI cache)
+      const localOrders = JSON.parse(localStorage.getItem('laundryOrders') || '[]');
+      const userEmail = user.email?.toLowerCase()?.trim();
       
-      if (response.ok) {
-        const data = await response.json();
-        const orderList = data.orders || [];
-        
-        const ordersWithImages = orderList.map(order => ({
-          ...order,
-          orderNumber: order.trackingId || order.orderNumber || order._id,
-          items: (order.items || []).map(item => ({
-            ...item,
-            image: item.image || serviceImages[item.name] || serviceImages["Wash & Fold"]
-          }))
-        }));
-        
-        setOrders(ordersWithImages);
-      } else {
-        setOrders([]);
-      }
+      const filteredLocal = localOrders.filter(lo => {
+        if (!userEmail) return true;
+        const loEmail = (lo.customerDetails?.email || lo.email)?.toLowerCase()?.trim();
+        return !loEmail || loEmail === userEmail;
+      });
+
+      // Merge: avoid duplicates by matching trackingId, orderNumber, or _id
+      const backendIds = new Set(backendOrders.map(o => o.trackingId || o.orderNumber || o._id));
+      const uniqueLocal = filteredLocal.filter(lo => {
+        const id = lo.trackingId || lo.orderNumber || lo._id;
+        return !backendIds.has(id);
+      });
+
+      const combined = [...backendOrders, ...uniqueLocal];
+
+      const ordersWithImages = combined.map(order => ({
+        ...order,
+        orderNumber: order.trackingId || order.orderNumber || order._id,
+        items: (order.items || []).map(item => ({
+          ...item,
+          image: item.image || serviceImages[item.name] || serviceImages["Wash & Fold"]
+        }))
+      }));
+
+      setOrders(ordersWithImages);
     } catch (err) {
-      console.error('Failed to fetch orders from backend:', err);
-      setOrders([]);
+      console.error('Failed to fetch orders:', err);
+      const localOrders = JSON.parse(localStorage.getItem('laundryOrders') || '[]');
+      setOrders(localOrders);
     } finally {
       setLoading(false);
     }
@@ -387,7 +403,6 @@ Phone: +91-9876543210
 
 // ✅ EXPORT SAVEORDER FUNCTION (saves to real backend & local storage)
 export const saveOrder = async (orderData) => {
-  const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   const customerDetails = {
@@ -421,30 +436,35 @@ export const saveOrder = async (orderData) => {
     status: orderData.status || 'pending'
   };
 
+  let savedOrder = null;
   try {
-    const res = await fetch(`${API_BASE_URL}/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify(payload)
-    });
-    if (res.ok) {
-      const data = await res.json();
-      return data.order;
+    const res = await API.post('/orders', payload);
+    if (res.data?.success && res.data.order) {
+      savedOrder = res.data.order;
     }
   } catch (err) {
-    console.error('Backend saveOrder failed:', err);
+    console.error('Backend saveOrder failed, saving locally:', err);
   }
 
-  // Fallback local order
-  const newOrder = {
-    _id: Date.now().toString(),
-    trackingId: `LT${Date.now()}`,
-    orderNumber: `ORD${Date.now()}`,
-    ...payload,
-    createdAt: new Date().toISOString()
-  };
-  return newOrder;
+  if (!savedOrder) {
+    savedOrder = {
+      _id: Date.now().toString(),
+      trackingId: `LT${Date.now()}`,
+      orderNumber: `ORD${Date.now()}`,
+      ...payload,
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  // Always update local cache so it's instantly available in Order History
+  try {
+    const localList = JSON.parse(localStorage.getItem('laundryOrders') || '[]');
+    const exists = localList.some(o => (o.trackingId && o.trackingId === savedOrder.trackingId) || o._id === savedOrder._id);
+    if (!exists) {
+      localList.unshift(savedOrder);
+      localStorage.setItem('laundryOrders', JSON.stringify(localList.slice(0, 50)));
+    }
+  } catch (e) {}
+
+  return savedOrder;
 };
