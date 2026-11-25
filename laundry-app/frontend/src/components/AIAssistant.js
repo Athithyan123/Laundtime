@@ -46,6 +46,141 @@ export default function AIAssistant() {
   const [listening, setListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
 
+  // ── Movable / Draggable Circle State ──
+  const clampPosition = useCallback((x, y) => {
+    const btnSize = 62;
+    const padding = 16;
+    const maxX = (typeof window !== "undefined" ? window.innerWidth : 400) - btnSize - padding;
+    const maxY = (typeof window !== "undefined" ? window.innerHeight : 700) - btnSize - padding;
+    return {
+      x: Math.max(padding, Math.min(x, maxX)),
+      y: Math.max(padding, Math.min(y, maxY))
+    };
+  }, []);
+
+  const [position, setPosition] = useState(() => {
+    try {
+      const saved = localStorage.getItem("ai_fab_pos");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+          return parsed;
+        }
+      }
+    } catch {}
+    const defaultX = typeof window !== "undefined" ? window.innerWidth - 88 : 300;
+    const defaultY = typeof window !== "undefined" ? window.innerHeight - 90 : 500;
+    return { x: defaultX, y: defaultY };
+  });
+
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef({
+    startX: 0,
+    startY: 0,
+    initialX: 0,
+    initialY: 0,
+    hasMoved: false
+  });
+
+  // Keep circular button on-screen when window resizes
+  useEffect(() => {
+    const handleResize = () => {
+      setPosition(prev => clampPosition(prev.x, prev.y));
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [clampPosition]);
+
+  // Pointer drag handler (works for mouse and mobile touch)
+  const handlePointerDown = (e) => {
+    if (e.button && e.button !== 0) return; // Only primary button
+
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: position.x,
+      initialY: position.y,
+      hasMoved: false
+    };
+
+    setIsDragging(true);
+
+    const onPointerMove = (moveEvent) => {
+      const dx = moveEvent.clientX - dragRef.current.startX;
+      const dy = moveEvent.clientY - dragRef.current.startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        dragRef.current.hasMoved = true;
+      }
+      const nextPos = clampPosition(
+        dragRef.current.initialX + dx,
+        dragRef.current.initialY + dy
+      );
+      setPosition(nextPos);
+    };
+
+    const onPointerUp = () => {
+      setIsDragging(false);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+
+      setPosition(currentPos => {
+        try {
+          localStorage.setItem("ai_fab_pos", JSON.stringify(currentPos));
+        } catch {}
+        return currentPos;
+      });
+
+      // If user did not move, toggle open
+      if (!dragRef.current.hasMoved) {
+        setOpen(o => !o);
+      }
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  };
+
+  const getChatWindowStyle = () => {
+    const isMobile = typeof window !== "undefined" && window.innerWidth <= 480;
+    if (isMobile) {
+      return {
+        bottom: "84px",
+        left: "16px",
+        right: "16px",
+        width: "calc(100vw - 32px)",
+        maxHeight: "calc(100vh - 100px)"
+      };
+    }
+
+    const chatWidth = 390;
+    const chatHeight = 580;
+    const padding = 16;
+    const windowW = typeof window !== "undefined" ? window.innerWidth : 1024;
+    const windowH = typeof window !== "undefined" ? window.innerHeight : 768;
+
+    const style = {};
+
+    // Horizontal placement relative to button
+    if (position.x + chatWidth + padding > windowW) {
+      const rightDist = Math.max(padding, windowW - position.x - 62);
+      style.right = `${rightDist}px`;
+    } else {
+      const leftDist = Math.max(padding, position.x);
+      style.left = `${leftDist}px`;
+    }
+
+    // Vertical placement relative to button
+    if (position.y + 62 + chatHeight + padding > windowH) {
+      const bottomDist = Math.max(padding, windowH - position.y + 10);
+      style.bottom = `${bottomDist}px`;
+    } else {
+      const topDist = Math.max(padding, position.y + 72);
+      style.top = `${topDist}px`;
+    }
+
+    return style;
+  };
+
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
   const recognitionRef = useRef(null);
@@ -241,20 +376,36 @@ export default function AIAssistant() {
 
   return (
     <>
-      {/* Floating Action Button */}
-      <button
-        className={`ai-fab ${open ? "open" : ""}`}
-        onClick={() => setOpen(o => !o)}
-        title="LaundTime AI Assistant"
+      {/* Movable Circular Floating Action Button */}
+      <div
+        className={`ai-fab ${open ? "open" : ""} ${isDragging ? "dragging" : ""}`}
+        style={{
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+          bottom: "auto",
+          right: "auto"
+        }}
+        onPointerDown={handlePointerDown}
+        title={open ? "Close AI Assistant" : "LaundTime AI Assistant (Drag to move)"}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(o => !o);
+          }
+        }}
       >
         <span className="ai-fab-icon">{open ? "✕" : "🤖"}</span>
-        {!open && <span className="ai-fab-label">AI Assistant</span>}
-        {!open && <span className="ai-fab-dot"></span>}
-      </button>
+        {!open && <span className="ai-fab-dot" />}
+        {!open && !isDragging && (
+          <span className="ai-fab-tooltip">AI Assistant · Drag to move</span>
+        )}
+      </div>
 
       {/* Chat Window */}
       {open && (
-        <div className="ai-chat-window">
+        <div className="ai-chat-window" style={getChatWindowStyle()}>
           {/* Header */}
           <div className="ai-chat-header">
             <div className="ai-chat-avatar">🤖</div>
