@@ -43,15 +43,15 @@ const OrderSchema = new mongoose.Schema({
 
   // ── Customer details ──
   customerDetails: {
-    name:        { type: String, required: true },
+    name:        { type: String, required: true, default: "Customer" },
     email:       { type: String, default: "" },
-    phone:       { type: String, required: true },
-    address:     { type: String, required: true },
-    city:        { type: String, required: true },
-    pincode:     { type: String, required: true },
-    pickupDate:  { type: Date, required: true },
-    pickupTime:  String,
-    instructions:String
+    phone:       { type: String, required: true, default: "9999999999" },
+    address:     { type: String, required: true, default: "Address provided" },
+    city:        { type: String, required: true, default: "Chennai" },
+    pincode:     { type: String, required: true, default: "600001" },
+    pickupDate:  { type: Date, required: true, default: Date.now },
+    pickupTime:  { type: String, default: "10:00 AM - 12:00 PM" },
+    instructions:{ type: String, default: "" }
   },
 
   // ── Payment ──
@@ -62,7 +62,7 @@ const OrderSchema = new mongoose.Schema({
   },
   paymentStatus: {
     type: String,
-    enum: ["pending", "completed", "failed"],
+    enum: ["pending", "completed", "paid", "failed"],
     default: "pending"
   },
 

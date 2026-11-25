@@ -196,8 +196,12 @@ const connectDB = async () => {
         });
         console.log("👑 Default admin account auto-created (admin@laundry.com / admin123)");
       }
+
+      // Ensure official services exist in Atlas database
+      const { seedServices } = await import("./seedServices.js");
+      await seedServices();
     } catch (seedErr) {
-      console.warn("⚠️  Admin check:", seedErr.message);
+      console.warn("⚠️  Seed check:", seedErr.message);
     }
 
   } catch (err) {

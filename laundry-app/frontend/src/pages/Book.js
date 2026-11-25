@@ -88,13 +88,18 @@ export default function Book() {
   const { addToCart } = useCart();
   const { wallet, deductMoney } = useWallet();
 
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
+    name: user.name || "",
+    email: user.email || "",
+    phone: user.phone || "",
     weight: 1,
-    address: "",
-    pincode: "",
-    city: "",
+    address: user.address || "",
+    pincode: user.pincode || "",
+    city: user.city || "Chennai",
     pickupDate: "",
     pickupTime: "",
     instructions: ""
@@ -104,10 +109,17 @@ export default function Book() {
   const [paymentMethod, setPaymentMethod] = useState("card");
 
   useEffect(() => {
-    // Find the selected service
-    const selectedService = sampleServices.find(s => s._id === id);
-    setService(selectedService);
-    setLoading(false);
+    API.get('/services')
+      .then(res => {
+        const list = Array.isArray(res.data) && res.data.length > 0 ? res.data : sampleServices;
+        const found = list.find(s => String(s._id) === String(id) || s.name?.toLowerCase() === id?.toLowerCase());
+        setService(found || sampleServices.find(s => s._id === id) || sampleServices[0]);
+      })
+      .catch(() => {
+        const found = sampleServices.find(s => s._id === id);
+        setService(found || sampleServices[0]);
+      })
+      .finally(() => setLoading(false));
 
     // Set default pickup date to tomorrow
     const tomorrow = new Date();
@@ -116,12 +128,6 @@ export default function Book() {
       ...prev,
       pickupDate: tomorrow.toISOString().split('T')[0]
     }));
-
-    // Actual API call
-    // API.get(`/services/${id}`)
-    //   .then(res => setService(res.data))
-    //   .catch(err => console.error(err))
-    //   .finally(() => setLoading(false));
   }, [id]);
 
   const handleInputChange = (e) => {
@@ -172,6 +178,11 @@ export default function Book() {
         return;
       }
 
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const custName = formData.name?.trim() || storedUser.name || "Customer";
+      const custPhone = formData.phone?.trim() || storedUser.phone || "9999999999";
+      const custEmail = formData.email?.trim() || storedUser.email || "";
+
       const orderData = {
         serviceId: service._id,
         serviceName: service.name,
@@ -185,6 +196,9 @@ export default function Book() {
         pickupTime: formData.pickupTime,
         instructions: formData.instructions,
         customerDetails: {
+          name: custName,
+          email: custEmail,
+          phone: custPhone,
           address: formData.address,
           pincode: formData.pincode,
           city: formData.city,
@@ -192,6 +206,14 @@ export default function Book() {
           pickupTime: formData.pickupTime,
           instructions: formData.instructions
         },
+        items: [
+          {
+            name: service.name,
+            quantity: Number(formData.weight) || 1,
+            price: service.pricePerKg || service.pricePerPiece || totalAmount,
+            unit: service.pricePerKg ? 'kg' : 'piece'
+          }
+        ],
         paymentMethod: paymentMethod,
         status: "pending",
         orderNumber: `LAUNDRY-${Date.now()}`,
@@ -295,6 +317,46 @@ export default function Book() {
           {!showPayment ? (
             // Booking Form
             <form onSubmit={bookingOption === "bookNow" ? handleBookNow : (e) => { e.preventDefault(); handleAddToCart(); }}>
+              {/* Contact Details */}
+              <div className="form-section">
+                <h3>👤 Customer Details</h3>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Full Name *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Phone Number *</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="10-digit mobile"
+                      maxLength="12"
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Email Address</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="name@example.com"
+                  />
+                </div>
+              </div>
+
               {/* Address Details */}
               <div className="form-section">
                 <h3>📍 Delivery Address</h3>

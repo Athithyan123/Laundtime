@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import API from "../api";
 import "./Services.css";
 
 export default function Services() {
@@ -108,8 +109,20 @@ export default function Services() {
       }
     ];
 
-    setServices(sampleServices);
-    setLoading(false);
+    setLoading(true);
+    API.get('/services')
+      .then(res => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setServices(res.data);
+        } else {
+          setServices(sampleServices);
+        }
+      })
+      .catch(err => {
+        console.warn('Backend /services fetch failed, using fallback:', err);
+        setServices(sampleServices);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const handleAddToCart = (service) => {

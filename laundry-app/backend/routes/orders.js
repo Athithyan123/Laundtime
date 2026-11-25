@@ -90,7 +90,7 @@ router.post('/', async (req, res) => {
       customerDetails: cust,
       paymentMethod: paymentMethod || 'cod',
       status: status || 'pending',
-      paymentStatus: (paymentMethod === 'cod' || paymentMethod === 'cash') ? 'pending' : 'paid',
+      paymentStatus: (paymentMethod === 'cod' || paymentMethod === 'cash') ? 'pending' : 'completed',
       statusHistory: [{ status: status || 'pending', note: 'Order placed by customer' }]
     });
 

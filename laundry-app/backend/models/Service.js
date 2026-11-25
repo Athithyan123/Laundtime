@@ -11,7 +11,15 @@ const ServiceSchema = new mongoose.Schema({
   },
   pricePerKg: { 
     type: Number, 
-    required: [true, 'Price per kg is required']
+    default: 0
+  },
+  pricePerPiece: {
+    type: Number,
+    default: 0
+  },
+  image: {
+    type: String,
+    default: ''
   },
   turnaroundHours: {
     type: Number,
@@ -20,8 +28,16 @@ const ServiceSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['Clothing', 'Premium', 'Home', 'Express', 'Special'],
+    enum: ['Clothing', 'Premium', 'Home', 'Express', 'Special', 'Basic'],
     default: 'Clothing'
+  },
+  rating: {
+    type: Number,
+    default: 4.8
+  },
+  reviews: {
+    type: Number,
+    default: 50
   },
   isActive: {
     type: Boolean,
