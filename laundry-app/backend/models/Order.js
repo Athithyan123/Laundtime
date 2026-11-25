@@ -44,7 +44,7 @@ const OrderSchema = new mongoose.Schema({
   // ── Customer details ──
   customerDetails: {
     name:        { type: String, required: true },
-    email:       { type: String, required: true },
+    email:       { type: String, default: "" },
     phone:       { type: String, required: true },
     address:     { type: String, required: true },
     city:        { type: String, required: true },
@@ -83,6 +83,21 @@ const OrderSchema = new mongoose.Schema({
   rider: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
+    default: null
+  },
+  pickupPartner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Partner",
+    default: null
+  },
+  washingPartner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Partner",
+    default: null
+  },
+  deliveryPartner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Partner",
     default: null
   },
   riderLocation: {

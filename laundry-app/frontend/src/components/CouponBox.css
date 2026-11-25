@@ -1,0 +1,32 @@
+/* CouponBox */
+.coupon-box { background: #f7fafc; border: 1.5px dashed #cbd5e0; border-radius: 14px; padding: 16px 18px; font-family: 'Inter', sans-serif; }
+.coupon-box.applied { background: #f0fdf4; border-color: #6ee7b7; border-style: solid; }
+
+.coupon-label { font-size: 13px; font-weight: 700; color: #4a5568; margin-bottom: 10px; }
+
+.coupon-input-row { display: flex; gap: 8px; }
+.coupon-input { flex: 1; border: 1.5px solid #e1e8f0; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 600; font-family: monospace; letter-spacing: 1px; color: #0d2137; outline: none; text-transform: uppercase; transition: border-color 0.2s; }
+.coupon-input:focus { border-color: #1a6ea8; }
+.coupon-input.error { border-color: #fc8181; }
+
+.coupon-apply-btn { background: #0d2137; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.2s; min-width: 72px; display: flex; align-items: center; justify-content: center; }
+.coupon-apply-btn:hover:not(:disabled) { background: #1a6ea8; }
+.coupon-apply-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.coupon-spin { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: cspin 0.7s linear infinite; display: inline-block; }
+@keyframes cspin { to { transform: rotate(360deg); } }
+
+.coupon-error { color: #e53e3e; font-size: 12px; margin-top: 7px; font-weight: 500; }
+
+.coupon-hints { font-size: 12px; color: #9aa5b1; margin-top: 8px; }
+.coupon-hints span { color: #1a6ea8; font-weight: 700; cursor: pointer; font-family: monospace; }
+.coupon-hints span:hover { text-decoration: underline; }
+
+/* Applied state */
+.coupon-applied-row { display: flex; align-items: flex-start; gap: 12px; }
+.coupon-tick { width: 28px; height: 28px; background: #059669; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.coupon-applied-code { font-size: 14px; font-weight: 800; color: #0d2137; font-family: monospace; letter-spacing: 1px; }
+.coupon-applied-msg  { font-size: 13px; color: #059669; font-weight: 600; margin-top: 2px; }
+.coupon-remove-btn { margin-left: auto; background: none; border: none; color: #9aa5b1; cursor: pointer; font-size: 16px; padding: 2px; transition: color 0.2s; }
+.coupon-remove-btn:hover { color: #e53e3e; }
+.coupon-saving { margin-top: 10px; font-size: 15px; font-weight: 800; color: #059669; }

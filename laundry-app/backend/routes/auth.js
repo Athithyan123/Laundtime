@@ -1,6 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Partner from "../models/Partner.js";
 
 const router = express.Router();
 
@@ -73,6 +74,7 @@ router.post("/login", async (req, res) => {
     }
 
     const token = generateToken(user._id);
+    const partner = user.role === "partner" ? await Partner.findOne({ user: user._id }) : null;
 
     res.json({
       message: "Login successful!",
@@ -82,13 +84,40 @@ router.post("/login", async (req, res) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        role: user.role
+        role: user.role,
+        partnerStatus: partner?.status || null
       }
     });
 
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Server error during login", error: err.message });
+  }
+});
+
+// ✅ POST /api/auth/admin/login — admin-panel dedicated login
+router.post("/admin/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password)
+      return res.status(400).json({ message: "Email and password are required" });
+
+    const user = await User.findOne({ email: email.toLowerCase().trim(), role: "admin" });
+    if (!user)
+      return res.status(401).json({ message: "No admin account found with this email" });
+
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch)
+      return res.status(401).json({ message: "Invalid password" });
+
+    const token = generateToken(user._id);
+    res.json({
+      message: "Admin login successful",
+      token,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 });
 

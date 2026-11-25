@@ -1,0 +1,74 @@
+/* CustomerInsights Page */
+.insights-page { min-height: 100vh; background: #f0f4f8; padding-bottom: 80px; font-family: 'Inter', sans-serif; }
+.insights-header { background: linear-gradient(135deg, #0d2137, #1a6ea8); padding: 52px 40px 44px; }
+.insights-header-inner { max-width: 900px; margin: 0 auto; text-align: center; }
+.insights-header-tag { display: inline-block; background: rgba(255,255,255,0.15); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 2px; padding: 5px 14px; border-radius: 99px; text-transform: uppercase; margin-bottom: 12px; }
+.insights-header h1 { color: #fff; font-size: clamp(24px,3.5vw,38px); font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+.insights-header p  { color: rgba(255,255,255,0.65); font-size: 15px; }
+
+.insights-content { max-width: 1100px; margin: 0 auto; padding: 32px 24px; display: flex; flex-direction: column; gap: 24px; }
+
+/* Stats grid */
+.insights-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.insight-stat-card { background: #fff; border-radius: 16px; padding: 22px; border: 1px solid #e1e8f0; transition: transform 0.2s, box-shadow 0.2s; }
+.insight-stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+.insight-stat-icon  { font-size: 28px; margin-bottom: 8px; }
+.insight-stat-value { font-size: 24px; font-weight: 800; color: #0d2137; margin-bottom: 3px; }
+.insight-stat-label { font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 2px; }
+.insight-stat-sub   { font-size: 11px; color: #9aa5b1; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Card */
+.insights-card { background: #fff; border-radius: 18px; border: 1px solid #e1e8f0; padding: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.insights-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.insights-card-header h3 { font-size: 17px; font-weight: 700; color: #0d2137; margin: 0; }
+.insights-card-sub { font-size: 13px; color: #9aa5b1; }
+.insights-redeem-btn { background: #0d2137; color: #fff; border: none; border-radius: 99px; padding: 9px 20px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.2s; }
+.insights-redeem-btn:hover { background: #1a6ea8; }
+.insights-empty { color: #9aa5b1; font-size: 14px; text-align: center; padding: 20px 0; }
+
+/* Spending chart */
+.spending-chart { display: flex; align-items: flex-end; gap: 12px; height: 200px; padding: 0 8px; }
+.chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+.chart-bar-amount { font-size: 11px; font-weight: 700; color: #1a6ea8; }
+.chart-bar-outer  { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+.chart-bar-fill   { width: 100%; background: linear-gradient(180deg, #1a6ea8 0%, #0d2137 100%); border-radius: 6px 6px 0 0; min-height: 4px; transition: height 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+.chart-bar-label  { font-size: 11px; color: #6e7d8e; font-weight: 600; }
+.chart-bar-orders { font-size: 10px; color: #9aa5b1; }
+
+/* KG bars */
+.kg-bars { display: flex; flex-direction: column; gap: 14px; }
+.kg-bar-row { display: grid; grid-template-columns: 70px 1fr 50px; align-items: center; gap: 12px; }
+.kg-bar-label-left { font-size: 13px; color: #6e7d8e; font-weight: 600; }
+.kg-bar-track { background: #f0f4f8; border-radius: 99px; height: 10px; overflow: hidden; }
+.kg-bar-fill  { height: 100%; background: linear-gradient(90deg, #059669, #34d399); border-radius: 99px; transition: width 0.6s ease; }
+.kg-bar-value { font-size: 13px; font-weight: 700; color: #0d2137; text-align: right; }
+
+/* Loyalty points */
+.points-balance-big { text-align: center; padding: 20px; background: #f0fdf4; border-radius: 14px; margin-bottom: 20px; }
+.pts-num   { font-size: 52px; font-weight: 900; color: #059669; line-height: 1; }
+.pts-label { font-size: 14px; color: #6e7d8e; margin-top: 6px; }
+
+.pts-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f0f4f8; font-size: 14px; }
+.pts-row:last-child { border-bottom: none; }
+.pts-row-icon   { font-size: 18px; }
+.pts-row-action { flex: 1; color: #4a5568; font-weight: 500; }
+.pts-row.earned .pts-row-pts { color: #059669; font-weight: 700; }
+.pts-row.redeemed .pts-row-pts { color: #e53e3e; font-weight: 700; }
+.pts-row-date { font-size: 12px; color: #9aa5b1; }
+
+/* Loading */
+.insights-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 14px; color: #6e7d8e; font-size: 15px; }
+.insights-spinner { width: 36px; height: 36px; border: 3px solid #e1e8f0; border-top-color: #1a6ea8; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 768px) {
+  .insights-stats { grid-template-columns: 1fr 1fr; }
+  .spending-chart { gap: 6px; }
+  .chart-bar-amount { font-size: 9px; }
+  .insights-header { padding: 36px 20px; }
+}
+@media (max-width: 480px) {
+  .insights-stats { grid-template-columns: 1fr 1fr; }
+  .insights-content { padding: 20px 16px; }
+  .spending-chart { height: 140px; }
+}

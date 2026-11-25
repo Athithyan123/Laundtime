@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+*/node_modules/
+*/*/node_modules/
+*/*/*/node_modules/
+
+# Production build artifacts
+build/
+dist/
+*/build/
+*/dist/
+*/*/build/
+*/*/dist/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*/.env
+*/.env.*
+!*/.env.example
+*/*/.env
+*/*/.env.*
+!*/*/.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# System and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.zencoder/
+.zenflow/
+
+# Coverage
+coverage/
+*/coverage/
+
+# Misc
+.cache/
+.parcel-cache/

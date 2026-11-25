@@ -1,0 +1,323 @@
+/* ============================================
+   SERVICES PAGE — Premium style
+   ============================================ */
+.services-page {
+  min-height: 100vh;
+  background: var(--gray-50);
+  font-family: var(--font-sans);
+  padding-bottom: 60px;
+}
+
+/* Header */
+.services-header {
+  background: var(--navy);
+  padding: 52px 48px 44px;
+}
+
+.services-header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.services-header-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--blue-light);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.services-header h1 {
+  color: var(--white);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin: 0 0 8px;
+}
+
+.services-header p {
+  color: rgba(255,255,255,0.6);
+  font-size: 15px;
+  margin: 0;
+}
+
+.view-cart-btn {
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 99px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s var(--ease);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.view-cart-btn:hover {
+  background: var(--blue-light);
+  transform: translateY(-2px);
+}
+
+/* Category tabs */
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 20px 48px;
+  overflow-x: auto;
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.category-tabs::-webkit-scrollbar { height: 0; }
+
+.category-tab {
+  padding: 8px 20px;
+  border-radius: 99px;
+  border: 1.5px solid var(--gray-200);
+  background: var(--white);
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s var(--ease);
+  font-family: var(--font-sans);
+}
+
+.category-tab:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+}
+
+.category-tab.active {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--white);
+}
+
+/* Grid */
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 32px 48px;
+  max-width: 1296px;
+  margin: 0 auto;
+}
+
+/* Card */
+.service-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gray-200);
+}
+
+.service-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+}
+
+/* Image */
+.service-image-wrap {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.service-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s var(--ease);
+}
+
+.service-card:hover .service-img { transform: scale(1.06); }
+
+.service-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--navy);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.express-badge {
+  top: 40px;
+  background: var(--blue);
+}
+
+/* Body */
+.service-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.service-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0 0 6px;
+}
+
+.service-desc {
+  font-size: 13px;
+  color: var(--gray-400);
+  margin: 0 0 12px;
+  line-height: 1.55;
+}
+
+/* Rating */
+.service-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.stars { color: var(--yellow); font-size: 13px; }
+.rating-val { font-size: 13px; font-weight: 700; color: var(--navy); }
+.rating-count { font-size: 12px; color: var(--gray-400); }
+
+/* Meta */
+.service-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--gray-100);
+  margin-bottom: 16px;
+}
+
+.service-price {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.service-time {
+  font-size: 11px;
+  color: var(--gray-400);
+  background: var(--gray-100);
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-weight: 600;
+}
+
+/* Actions */
+.service-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.book-now-btn {
+  flex: 1;
+  background: var(--navy);
+  color: var(--white);
+  border: none;
+  border-radius: 99px;
+  padding: 11px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.book-now-btn:hover {
+  background: var(--blue);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.add-cart-btn {
+  flex: 1;
+  background: var(--white);
+  color: var(--blue);
+  border: 1.5px solid var(--blue);
+  border-radius: 99px;
+  padding: 11px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  font-family: var(--font-sans);
+}
+
+.add-cart-btn:hover {
+  background: var(--blue);
+  color: white;
+}
+
+.add-cart-btn.added {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+/* Loading */
+.services-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: 16px;
+  color: var(--gray-400);
+  font-size: 15px;
+}
+
+.loading-spinner-lg {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.no-services {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--gray-400);
+  font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .services-header { padding: 36px 20px; }
+  .category-tabs { padding: 16px 20px; }
+  .services-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); padding: 20px; gap: 12px; }
+  .service-image-wrap { height: 150px; }
+  .service-actions { flex-direction: column; }
+  .service-price { font-size: 17px; }
+}

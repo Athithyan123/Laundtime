@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     default: "user",
-    enum: ["user", "admin", "rider"]
+    enum: ["user", "admin", "rider", "partner"]
   },
 
   // ── Loyalty Points ──

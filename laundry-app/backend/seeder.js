@@ -1,38 +1,60 @@
-// Run once: node seeder.js
-require('dotenv').config();
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const User = require('./models/User');
-const Service = require('./models/Service');
+/**
+ * LaundTime Admin Seeder
+ * Run: node seeder.js
+ * Creates the super admin account in MongoDB
+ */
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
+import User from "./models/User.js";
+
+dotenv.config();
+
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/laundryapp";
 
 async function seed() {
-  await mongoose.connect(process.env.MONGO_URI);
-  console.log('connected');
+  try {
+    console.log("🔄 Connecting to MongoDB...");
+    await mongoose.connect(MONGO_URI);
+    console.log("✅ Connected to MongoDB");
 
-  // create admin
-  const adminEmail = 'admin@laundry.com';
-  let admin = await User.findOne({ email: adminEmail });
-  if(!admin) {
-    const hashed = await bcrypt.hash('admin123', 10);
-    admin = new User({ name: 'Admin', email: adminEmail, password: hashed, role: 'admin' });
-    await admin.save();
-    console.log('admin created');
-  }
-
-  // sample services
-  const services = [
-    { name: 'Wash & Fold', description: 'Standard wash and fold', pricePerKg: 50, turnaroundHours: 48 },
-    { name: 'Dry Clean', description: 'Dry cleaning for delicate clothes', pricePerKg: 120, turnaroundHours: 72 },
-    { name: 'Ironing', description: 'Separate ironing service', pricePerKg: 30, turnaroundHours: 24 }
-  ];
-  for(const s of services) {
-    const exists = await Service.findOne({ name: s.name });
-    if(!exists) {
-      await new Service(s).save();
-      console.log('created', s.name);
+    // Check if admin already exists
+    const existing = await User.findOne({ email: "admin@laundry.com" });
+    if (existing) {
+      console.log("⚠️  Admin account already exists:");
+      console.log(`   Email: admin@laundry.com`);
+      console.log(`   Role: ${existing.role}`);
+      if (existing.role !== "admin") {
+        existing.role = "admin";
+        await existing.save();
+        console.log("✅ Role updated to admin");
+      }
+    } else {
+      await User.create({
+        name: "Super Admin",
+        email: "admin@laundry.com",
+        password: "admin123",   // Will be hashed by pre-save hook
+        phone: "9999999999",
+        role: "admin"
+      });
+      console.log("✅ Admin account created:");
+      console.log("   Email:    admin@laundry.com");
+      console.log("   Password: admin123");
+      console.log("   Role:     admin");
     }
-  }
 
-  mongoose.disconnect();
+    console.log("\n🎯 Admin login details:");
+    console.log("   URL:      http://localhost:3001");
+    console.log("   Email:    admin@laundry.com");
+    console.log("   Password: admin123\n");
+
+  } catch (err) {
+    console.error("❌ Seeder error:", err.message);
+  } finally {
+    await mongoose.disconnect();
+    console.log("🔌 Disconnected from MongoDB");
+    process.exit(0);
+  }
 }
+
 seed();

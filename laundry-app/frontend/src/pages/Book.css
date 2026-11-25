@@ -1,0 +1,540 @@
+/* Book.css - Complete Booking Page Styles */
+.book-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 80vh;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 40px;
+  align-items: start;
+}
+
+/* Service Details Card */
+.service-details-card {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  height: fit-content;
+  position: sticky;
+  top: 20px;
+}
+
+.service-image {
+  width: 100%;
+  height: 250px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+}
+
+.service-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.service-info h1 {
+  color: #232f3e;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 1.8rem;
+}
+
+.service-description {
+  color: #666;
+  margin-bottom: 20px;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.service-pricing {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #232f3e;
+}
+
+.delivery-time {
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9rem;
+}
+
+.weight-selection {
+  margin-bottom: 25px;
+}
+
+.weight-selection label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #232f3e;
+  font-size: 0.9rem;
+}
+
+.weight-selection input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.weight-selection input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.total-calculation {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  padding: 25px;
+  border-radius: 8px;
+  text-align: center;
+  border: 2px solid #e0e0e0;
+}
+
+.total-calculation h3 {
+  margin: 0 0 8px 0;
+  color: #232f3e;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.total-calculation small {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+/* Booking Form Card */
+.booking-form-card {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.booking-form-card h2 {
+  color: #232f3e;
+  margin-bottom: 25px;
+  font-weight: 600;
+  font-size: 1.5rem;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 15px;
+}
+
+.form-section {
+  margin-bottom: 30px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.form-section h3 {
+  color: #232f3e;
+  margin-bottom: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #232f3e;
+  font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Booking Options */
+.booking-options {
+  margin: 25px 0;
+}
+
+.booking-option {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f8f9fa;
+}
+
+.booking-option:hover {
+  border-color: #667eea;
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.booking-option input {
+  margin-right: 15px;
+  transform: scale(1.2);
+}
+
+.booking-option span {
+  font-weight: 600;
+  color: #232f3e;
+  font-size: 1rem;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.book-now-btn,
+.add-to-cart-btn,
+.back-btn {
+  padding: 15px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.book-now-btn {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.book-now-btn:hover {
+  background: linear-gradient(135deg, #218838, #1e9e8a);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.add-to-cart-btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.add-to-cart-btn:hover {
+  background: linear-gradient(135deg, #5a6fd8, #6a4190);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.back-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.back-btn:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+/* Payment Section */
+.payment-section {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.payment-options {
+  margin: 20px 0;
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f8f9fa;
+}
+
+.payment-option:hover {
+  border-color: #667eea;
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.payment-option input {
+  margin-right: 15px;
+  transform: scale(1.2);
+}
+
+.payment-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-details span {
+  font-weight: 600;
+  color: #232f3e;
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.payment-details small {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+/* Order Summary in Payment */
+.order-summary-payment {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  padding: 20px;
+  border-radius: 8px;
+  margin: 25px 0;
+  border: 1px solid #e0e0e0;
+}
+
+.order-summary-payment h4 {
+  margin: 0 0 15px 0;
+  color: #232f3e;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 0.95rem;
+}
+
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #232f3e;
+  padding-top: 10px;
+  border-top: 2px solid #e0e0e0;
+}
+
+/* Payment Action Buttons */
+.payment-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.confirm-payment-btn {
+  padding: 15px;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirm-payment-btn:hover {
+  background: linear-gradient(135deg, #218838, #1e9e8a);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.back-to-booking-btn {
+  padding: 12px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-to-booking-btn:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+/* Loading and Error States */
+.loading,
+.error {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 1.2rem;
+  color: #666;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin: 20px 0;
+}
+
+.error {
+  color: #dc3545;
+  border: 1px solid #f5c6cb;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .book-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .service-details-card,
+  .booking-form-card {
+    padding: 20px;
+    position: static;
+  }
+  
+  .service-image {
+    height: 200px;
+  }
+  
+  .service-info h1 {
+    font-size: 1.5rem;
+  }
+  
+  .action-buttons,
+  .payment-actions {
+    gap: 10px;
+  }
+  
+  .book-now-btn,
+  .add-to-cart-btn,
+  .back-btn,
+  .confirm-payment-btn {
+    padding: 12px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .book-container {
+    padding: 10px;
+  }
+  
+  .service-details-card,
+  .booking-form-card {
+    padding: 15px;
+  }
+  
+  .service-pricing {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .booking-option,
+  .payment-option {
+    padding: 12px;
+  }
+  /* Add to Book.css - Wallet Balance Styles */
+.wallet-balance-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #667eea;
+}
+
+.balance-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+.insufficient-balance {
+  color: #dc3545;
+  font-size: 0.9rem;
+}
+
+/* Disabled button styles */
+.confirm-payment-btn:disabled {
+  background: #6c757d !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.confirm-payment-btn:disabled:hover {
+  background: #6c757d !important;
+  transform: none !important;
+}
+}

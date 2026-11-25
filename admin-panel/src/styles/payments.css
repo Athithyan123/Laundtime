@@ -1,0 +1,16 @@
+/* ─── Payments ───────────────────────────────────────────────────────── */
+.payments-page { max-width: 1200px; }
+.pay-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.pay-card { background: #fff; border-radius: 12px; padding: 1.25rem 1.5rem; box-shadow: var(--shadow); border-left: 5px solid; }
+.pay-card.orange { border-color: #f59e0b; }
+.pay-card.green  { border-color: #10b981; }
+.pay-card.blue   { border-color: #3b82f6; }
+.pay-label  { font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: .4rem; }
+.pay-amount { font-size: 1.75rem; font-weight: 800; }
+.commission-guide { background: #fff; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); }
+.commission-guide h3 { margin-bottom: 1rem; font-size: 1rem; font-weight: 700; }
+.comm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .75rem; }
+.comm-item { display: flex; justify-content: space-between; align-items: center; padding: .6rem 1rem; background: #f9fafb; border-radius: 8px; }
+.comm-item strong { font-size: 1.1rem; color: var(--primary); }
+.amount-pending { color: #f59e0b; font-weight: 700; }
+.amount-paid    { color: #10b981; font-weight: 700; }

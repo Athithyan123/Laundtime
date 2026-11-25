@@ -10,6 +10,8 @@ import subscriptionRoutes  from "./routes/subscriptions.js";
 import couponRoutes        from "./routes/coupons.js";
 import riderRoutes         from "./routes/rider.js";
 import loyaltyRoutes       from "./routes/loyalty.js";
+import partnerRoutes       from "./routes/partner.js";
+import aiRoutes            from "./routes/ai.js";
 
 dotenv.config();
 
@@ -53,6 +55,69 @@ app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/coupons",       couponRoutes);
 app.use("/api/rider",         riderRoutes);
 app.use("/api/loyalty",       loyaltyRoutes);
+app.use("/api/partner",       partnerRoutes);
+app.use("/api/ai",            aiRoutes);
+
+// ✅ SSE — real-time live feed for admin panel
+import { addClient, removeClient, broadcast as _broadcast } from "./utils/broadcast.js";
+
+app.get("/api/admin/live", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control",  "no-cache");
+  res.setHeader("Connection",     "keep-alive");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.flushHeaders();
+
+  const send = (data) => { try { res.write(`data: ${JSON.stringify(data)}\n\n`); } catch {} };
+  send({ type: "connected", time: new Date().toISOString() });
+
+  const heartbeat = setInterval(() => send({ type: "ping", time: new Date().toISOString() }), 20000);
+  addClient(send);
+  req.on("close", () => { clearInterval(heartbeat); removeClient(send); });
+});
+
+// ✅ Admin Stats endpoint
+app.get("/api/admin/stats", async (req, res) => {
+  try {
+    const [Partner, Order, User] = await Promise.all([
+      import("./models/Partner.js").then(m => m.default),
+      import("./models/Order.js").then(m => m.default),
+      import("./models/User.js").then(m => m.default),
+    ]);
+    const [
+      totalPartners, pendingApps, approvedPartners,
+      totalOrders, completedOrders, pendingOrders,
+      totalCustomers
+    ] = await Promise.all([
+      Partner.countDocuments(),
+      Partner.countDocuments({ status: "pending" }),
+      Partner.countDocuments({ status: "approved" }),
+      Order.countDocuments(),
+      Order.countDocuments({ status: "delivered" }),
+      Order.countDocuments({ status: "pending" }),
+      User.countDocuments({ role: { $in: ["user", null] } })
+    ]);
+    const revenueAgg = await Order.aggregate([
+      { $match: { status: { $ne: "cancelled" } } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+    ]);
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const todayAgg = await Order.aggregate([
+      { $match: { createdAt: { $gte: todayStart }, status: { $ne: "cancelled" } } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+    ]);
+    res.json({
+      totalPartners, pendingApps, approvedPartners,
+      totalOrders, completedOrders, pendingOrders,
+      totalCustomers,
+      totalRevenue: revenueAgg[0]?.total || 0,
+      todayRevenue: todayAgg[0]?.total || 0,
+      activeAreas: approvedPartners
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Stats error", error: err.message });
+  }
+});
 
 // ✅ Health check (used by frontend to detect if backend is up)
 app.get("/api/health", (req, res) => {

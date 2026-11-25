@@ -1,0 +1,11 @@
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--gray-50);
+}
+
+.App > main,
+.App > div:not(.navbar):not(.notification) {
+  flex: 1;
+}
