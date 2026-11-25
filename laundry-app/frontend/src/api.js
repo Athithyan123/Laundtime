@@ -4,20 +4,29 @@ import axios from 'axios';
 // ✅ Smart base URL — works on PC (localhost), mobile & cloud
 // ─────────────────────────────────────────────────────────
 export const getBaseURL = () => {
-  // If .env overrides (e.g. on Render), use that
-  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL.replace(/\/+$/, '');
-
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    // Development / Localhost
-    if (host === 'localhost' || host === '127.0.0.1') {
-      return `http://${host}:5001/api`;
-    }
-    // Render cloud hosting
+    const protocol = window.location.protocol;
+
+    // 1. If running on Render (*.onrender.com)
     if (host.includes('onrender.com')) {
       return 'https://laundtime-backend.onrender.com/api';
     }
-    return `${window.location.protocol}//${host}/api`;
+
+    // 2. If running locally on PC
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return `http://${host}:5001/api`;
+    }
+
+    // 3. Cloud / Custom domain over HTTPS
+    if (protocol === 'https:') {
+      return `https://${host}/api`;
+    }
+  }
+
+  // 4. Fallback to env variable if not hardcoded to localhost
+  if (process.env.REACT_APP_API_URL && !process.env.REACT_APP_API_URL.includes('localhost')) {
+    return process.env.REACT_APP_API_URL.replace(/\/+$/, '');
   }
 
   return 'http://localhost:5001/api';

@@ -38,7 +38,7 @@ services:
         destination: /index.html
     envVars:
       - key: REACT_APP_API_URL
-        sync: false
+        value: https://laundtime-backend.onrender.com/api
 
   # ─────────────────────────────────────────────────────────
   # 3. Super Admin Panel (Vite + React)
@@ -57,7 +57,7 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        sync: false
+        value: https://laundtime-backend.onrender.com/api
 
   # ─────────────────────────────────────────────────────────
   # 4. Partner App (React)
@@ -76,4 +76,4 @@ services:
         destination: /index.html
     envVars:
       - key: REACT_APP_API_URL
-        sync: false
+        value: https://laundtime-backend.onrender.com/api
