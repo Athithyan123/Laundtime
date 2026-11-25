@@ -159,20 +159,25 @@ router.get("/customers", protect, isAdmin, async (req, res) => {
     // 3. Extract unique customer records from orders (for guest / direct bookings)
     for (const o of orders) {
       const custDetails = o.customerDetails;
-      if (!custDetails || !custDetails.email) continue;
+      if (!custDetails) continue;
 
-      const emailKey = custDetails.email.toLowerCase().trim();
-      if (!customerMap.has(emailKey)) {
-        const matchingOrders = orders.filter(go => 
-          go.customerDetails?.email && go.customerDetails.email.toLowerCase().trim() === emailKey
-        );
+      const emailKey = custDetails.email ? custDetails.email.toLowerCase().trim() : '';
+      const phoneKey = custDetails.phone ? custDetails.phone.trim() : '';
+      const lookupKey = emailKey || (phoneKey ? `phone_${phoneKey}` : String(o._id));
+
+      if (!customerMap.has(lookupKey) && (!emailKey || !customerMap.has(emailKey))) {
+        const matchingOrders = orders.filter(go => {
+          const goEmail = go.customerDetails?.email ? go.customerDetails.email.toLowerCase().trim() : '';
+          const goPhone = go.customerDetails?.phone ? go.customerDetails.phone.trim() : '';
+          return (emailKey && goEmail === emailKey) || (phoneKey && goPhone === phoneKey);
+        });
         const totalSpent = matchingOrders.reduce((sum, go) => sum + (Number(go.totalAmount) || 0), 0);
         const lastOrder = matchingOrders[0];
 
-        customerMap.set(emailKey, {
+        const record = {
           _id: o.user ? String(o.user) : String(o._id),
           name: custDetails.name || "Customer",
-          email: custDetails.email,
+          email: custDetails.email || (custDetails.phone ? `${custDetails.phone}@customer.laundtime` : "guest@laundtime.com"),
           phone: custDetails.phone || "N/A",
           address: custDetails.address || "Address not provided",
           city: custDetails.city || "Chennai",
@@ -191,7 +196,9 @@ router.get("/customers", protect, isAdmin, async (req, res) => {
             createdAt: go.createdAt,
             itemCount: (go.items || []).length
           }))
-        });
+        };
+        customerMap.set(lookupKey, record);
+        if (emailKey) customerMap.set(emailKey, record);
       }
     }
 

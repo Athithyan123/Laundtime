@@ -27,37 +27,52 @@ router.post('/', async (req, res) => {
 
     const tokenUser = getUserFromToken(req);
     let userRecord = null;
+
+    const rawPhone = (customerDetails?.phone || req.body?.phone || '').trim();
+    const rawEmail = (customerDetails?.email || req.body?.email || '').toLowerCase().trim();
+    // If no email provided, generate a predictable unique customer email based on phone or timestamp
+    const resolvedEmail = rawEmail || (rawPhone ? `customer_${rawPhone.replace(/\D/g, '')}@laundtime.customer` : `customer_${Date.now()}@laundtime.customer`);
+
     if (tokenUser) {
       userRecord = await User.findById(tokenUser).catch(() => null);
-    } else if (customerDetails?.email || req.body?.email) {
-      const emailToLookup = (customerDetails?.email || req.body?.email).toLowerCase().trim();
-      userRecord = await User.findOne({ email: emailToLookup }).catch(() => null);
-      if (!userRecord) {
-        // Auto-enroll new customer account from order details
-        userRecord = await User.create({
-          name: customerDetails?.name || "Customer",
-          email: emailToLookup,
-          phone: customerDetails?.phone || "",
-          address: customerDetails?.address || "",
-          city: customerDetails?.city || "Chennai",
-          role: "user",
-          password: "customer123"
-        }).catch(() => null);
-      }
+    }
+    if (!userRecord && rawEmail) {
+      userRecord = await User.findOne({ email: rawEmail }).catch(() => null);
+    }
+    if (!userRecord && rawPhone) {
+      userRecord = await User.findOne({ phone: rawPhone }).catch(() => null);
+    }
+    if (!userRecord) {
+      // Auto-enroll new customer account from order details
+      userRecord = await User.create({
+        name: customerDetails?.name || "Customer",
+        email: resolvedEmail,
+        phone: rawPhone || "9999999999",
+        address: customerDetails?.address || "Address provided",
+        city: customerDetails?.city || "Chennai",
+        role: "user",
+        password: "customer123"
+      }).catch(err => {
+        console.warn("Auto-enroll customer failed, falling back:", err.message);
+        return null;
+      });
     }
 
     // Sanitize customer details with graceful defaults
     const cust = {
       name:         customerDetails?.name || userRecord?.name || (req.user ? req.user.name : "Customer"),
-      email:        customerDetails?.email || userRecord?.email || (req.user ? req.user.email : ""),
-      phone:        customerDetails?.phone || userRecord?.phone || (req.user ? req.user.phone : "9999999999"),
+      email:        rawEmail || userRecord?.email || resolvedEmail,
+      phone:        rawPhone || userRecord?.phone || (req.user ? req.user.phone : "9999999999"),
       address:      customerDetails?.address || userRecord?.address || "Address provided",
-      city:         customerDetails?.city || "Chennai",
+      city:         customerDetails?.city || userRecord?.city || "Chennai",
       pincode:      customerDetails?.pincode || "600001",
       pickupDate:   customerDetails?.pickupDate || customerDetails?.date || new Date(),
       pickupTime:   customerDetails?.pickupTime || customerDetails?.time || "10:00 AM - 12:00 PM",
       instructions: customerDetails?.instructions || ""
     };
+
+    const normalizedPaymentMethod = (paymentMethod || 'cod').toLowerCase().trim();
+    const finalPaymentMethod = (normalizedPaymentMethod === 'cash') ? 'cod' : normalizedPaymentMethod;
 
     const orderItems = (items && items.length > 0)
       ? items.map(it => ({
@@ -88,9 +103,9 @@ router.post('/', async (req, res) => {
       bookingType: bookingType || 'item-wise',
       isExpress: Boolean(isExpress),
       customerDetails: cust,
-      paymentMethod: paymentMethod || 'cod',
+      paymentMethod: finalPaymentMethod,
       status: status || 'pending',
-      paymentStatus: (paymentMethod === 'cod' || paymentMethod === 'cash') ? 'pending' : 'completed',
+      paymentStatus: (finalPaymentMethod === 'cod') ? 'pending' : 'completed',
       statusHistory: [{ status: status || 'pending', note: 'Order placed by customer' }]
     });
 

@@ -428,11 +428,14 @@ export const saveOrder = async (orderData) => {
 
   const totalAmount = orderData.totalPrice || orderData.totalAmount || items.reduce((s, i) => s + (i.price * (i.quantity || 1)), 0);
 
+  const normPay = (orderData.paymentMethod || 'wallet').toLowerCase();
+  const finalPayMethod = normPay === 'cash' ? 'cod' : normPay;
+
   const payload = {
     items,
     totalAmount,
     customerDetails,
-    paymentMethod: orderData.paymentMethod || 'wallet',
+    paymentMethod: finalPayMethod,
     status: orderData.status || 'pending'
   };
 

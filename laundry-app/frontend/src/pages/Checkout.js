@@ -138,7 +138,7 @@ export default function Checkout() {
         items: cart.items,
         totalAmount: getCartTotal(),
         customerDetails: formData,
-        paymentMethod,
+        paymentMethod: paymentMethod === 'cash' ? 'cod' : paymentMethod,
         status: "pending",
         createdAt: new Date().toISOString()
       };
@@ -175,7 +175,7 @@ export default function Checkout() {
         items: cart.items,
         totalAmount: getCartTotal(),
         customerDetails: formData,
-        paymentMethod,
+        paymentMethod: paymentMethod === 'cash' ? 'cod' : paymentMethod,
         status: "pending",
         createdAt: new Date().toISOString()
       };

@@ -116,7 +116,7 @@ export default function Payment() {
 
     try {
       let paymentSuccess = false;
-      let paymentMethod = selectedMethod;
+      let paymentMethod = selectedMethod === "cash" ? "cod" : selectedMethod;
 
       // Handle different payment methods
       switch (selectedMethod) {
