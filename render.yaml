@@ -19,7 +19,7 @@ services:
       - key: JWT_SECRET
         value: supersecretkey123laundtime2024
       - key: MONGODB_URI
-        sync: false # Enter your MongoDB Atlas connection string in Render dashboard
+        value: mongodb+srv://Athithyan123:Athithyan%40123@cluster0.apnmtmb.mongodb.net/laundryapp?retryWrites=true&w=majority
 
   # ─────────────────────────────────────────────────────────
   # 2. Customer Frontend App (React)

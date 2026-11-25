@@ -2,6 +2,14 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import mongoose from "mongoose";
+import dns from "node:dns";
+
+// Ensure reliable SRV DNS resolution for MongoDB Atlas across environments
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (e) {
+  // continue if system restricts DNS override
+}
 import userRoutes          from "./routes/userRoutes.js";
 import authRoutes          from "./routes/auth.js";
 import orderRoutes         from "./routes/orders.js";
@@ -160,7 +168,7 @@ app.use((err, req, res, next) => {
 // ─────────────────────────────────────────────
 // ✅ MONGODB CONNECTION
 // ─────────────────────────────────────────────
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/laundryapp";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb+srv://Athithyan123:Athithyan%40123@cluster0.apnmtmb.mongodb.net/laundryapp?retryWrites=true&w=majority";
 
 const connectDB = async () => {
   try {
