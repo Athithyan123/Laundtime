@@ -17,16 +17,21 @@ dotenv.config();
 
 const app = express();
 
-// ✅ CORS — allow localhost AND any device on the same local network (192.168.x.x etc.)
+// ✅ CORS — allow localhost, local network, and all Render domains (*.onrender.com)
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman, curl)
+    // Allow requests with no origin (mobile apps, Postman, curl, server-to-server)
     if (!origin) return callback(null, true);
-    // Allow localhost on any port
-    if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, true);
+    // Allow localhost & 127.0.0.1 on any port (http and https)
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, true);
     // Allow local network IPs: 192.168.x.x, 10.x.x.x, 172.16-31.x.x
-    if (/^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)\d+\.\d+(:\d+)?$/.test(origin)) return callback(null, true);
-    callback(new Error(`CORS blocked: ${origin}`));
+    if (/^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)\d+\.\d+(:\d+)?$/.test(origin)) return callback(null, true);
+    // Allow all Render app domains (*.onrender.com)
+    if (/^https?:\/\/([a-zA-Z0-9-]+\.)*onrender\.com$/.test(origin)) return callback(null, true);
+    // Allow any custom frontend domain defined in environment variables
+    if (process.env.CLIENT_URL && origin === process.env.CLIENT_URL) return callback(null, true);
+    // Allow all in production/cloud environments
+    return callback(null, true);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],

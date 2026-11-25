@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWallet } from "../context/WalletContext";
+import { API_BASE_URL } from "../api";
 import "./Orders.css";
 
 // Service image fallbacks
@@ -35,7 +36,7 @@ export default function Orders() {
         return;
       }
 
-      const response = await fetch('http://localhost:5001/api/orders/myorders', {
+      const response = await fetch(`${API_BASE_URL}/orders/myorders`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -80,7 +81,7 @@ export default function Orders() {
     try {
       if (order._id) {
         const token = localStorage.getItem('token');
-        await fetch(`http://localhost:5001/api/orders/${order._id}/status`, {
+        await fetch(`${API_BASE_URL}/orders/${order._id}/status`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -421,7 +422,7 @@ export const saveOrder = async (orderData) => {
   };
 
   try {
-    const res = await fetch('http://localhost:5001/api/orders', {
+    const res = await fetch(`${API_BASE_URL}/orders`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

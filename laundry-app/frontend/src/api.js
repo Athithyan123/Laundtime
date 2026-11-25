@@ -1,26 +1,24 @@
 import axios from 'axios';
 
 // ─────────────────────────────────────────────────────────
-// ✅ Smart base URL — works on PC (localhost) AND mobile
-//    (uses the same IP/hostname the app was loaded from)
+// ✅ Smart base URL — works on PC (localhost), mobile & cloud
 // ─────────────────────────────────────────────────────────
-const getBaseURL = () => {
-  // If .env overrides, use that
+export const getBaseURL = () => {
+  // If .env overrides (e.g. on Render), use that
   if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
 
-  // In production build
-  if (process.env.NODE_ENV === 'production') return '/api';
-
-  // Development: use the same hostname (works for localhost AND mobile on same WiFi)
-  const host = window.location.hostname;  // 'localhost' on PC, '192.168.x.x' on mobile
+  // Development / Localhost
+  const host = window.location.hostname;
   return `http://${host}:5001/api`;
 };
 
+export const API_BASE_URL = getBaseURL();
+
 // ✅ Create API instance
 const API = axios.create({
-  baseURL: getBaseURL(),
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 10000,  // 10s — mobile networks can be slow
+  timeout: 10000,
 });
 
 // ─────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../api";
 import "./TrackOrder.css";
 
 const STATUS_STEPS = [
@@ -25,7 +26,7 @@ export default function TrackOrder() {
   const fetchOrder = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5001/api/orders/track/${orderId}`);
+      const res = await fetch(`${API_BASE_URL}/orders/track/${orderId}`);
       if (res.ok) {
         const data = await res.json();
         if (data.order) {

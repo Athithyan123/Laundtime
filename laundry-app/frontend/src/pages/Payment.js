@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useWallet } from "../context/WalletContext";
+import { API_BASE_URL } from "../api";
 import "./Payment.css";
 
 export default function Payment() {
@@ -213,7 +214,7 @@ export default function Payment() {
     // Try posting to real backend first
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5001/api/orders', {
+      const res = await fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useWallet } from "../context/WalletContext";
+import { API_BASE_URL } from "../api";
 import "./AIAssistant.css";
 
 // ── Smart Local Fallback Knowledge Base (Offline / Instant) ──
@@ -149,7 +150,7 @@ export default function AIAssistant() {
 
     try {
       // 1. Try Backend Live AI Chat Route
-      const res = await fetch("http://localhost:5001/api/ai/chat", {
+      const res = await fetch(`${API_BASE_URL}/ai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
