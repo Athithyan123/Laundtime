@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   ArrowDownLeft, ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Banknote,
   Bell, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronDown,
   CircleHelp, Clock3, Droplets, Filter, LayoutDashboard, LogOut, MapPin,
   Menu, PackageCheck, Plus, Search, Settings2, ShieldCheck, Shirt, Truck,
-  UserRound, Wallet, X
+  UserRound, Wallet, X, Radio, Navigation
 } from "lucide-react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import API, { getErrorMessage } from "./api";
@@ -32,18 +32,30 @@ const orderNumber = (order) => order.trackingId || `LT${String(order._id || "").
 const customerName = (order) => order.customerDetails?.name || order.user?.name || "Customer";
 const locationText = (order) => [order.customerDetails?.address, order.customerDetails?.city, order.customerDetails?.pincode].filter(Boolean).join(", ");
 const categoryName = (key) => categories.find(([value]) => value === key)?.[1] || "LaundTime partner";
+
 const statuses = {
-  confirmed: "Confirmed",
-  picked: "Picked up",
-  processing: "In progress",
-  ready: "Ready for delivery",
-  delivered: "Delivered"
+  pending: "Pending confirmation",
+  confirmed: "Confirmed · Pickup en route",
+  picked: "Laundry picked up",
+  processing: "Washing & care in progress",
+  ready: "Washing completed · Out for delivery",
+  delivered: "Delivered successfully"
 };
+
+// Requirements 3, 4, 5, 6
 const nextStatus = (category, status) => {
-  if (["pickup", "full-service"].includes(category) && status === "confirmed") return ["picked", "Mark picked up"];
-  if (category === "washing" && status === "picked") return ["processing", "Start washing"];
-  if (category === "washing" && status === "processing") return ["ready", "Mark ready"];
-  if (["delivery", "full-service"].includes(category) && status === "ready") return ["delivered", "Mark delivered"];
+  if (["pickup", "full-service"].includes(category) && status === "confirmed") {
+    return ["picked", "📦 Mark Laundry Picked Up"];
+  }
+  if (category === "washing" && status === "picked") {
+    return ["processing", "🧺 Start Washing Process"];
+  }
+  if (["washing", "full-service"].includes(category) && status === "processing") {
+    return ["ready", "✨ Washing Completed (Out for Delivery)"];
+  }
+  if (["delivery", "full-service"].includes(category) && status === "ready") {
+    return ["delivered", "🏠 Confirm Delivered (Stops Tracking)"];
+  }
   return null;
 };
 
@@ -91,7 +103,7 @@ function App() {
       })
       .finally(() => active && setAuthLoading(false));
     return () => { active = false; };
-  }, [signOut]);
+  }, [signOut, navigate]);
 
   const authenticate = (payload) => {
     localStorage.setItem(TOKEN_KEY, payload.token);
@@ -155,48 +167,42 @@ function AuthPage({ mode, onAuth, notice }) {
       setError(getErrorMessage(requestError));
     } finally { setBusy(false); }
   };
-
-  return <main className="auth-page">
-    <div className="auth-visual">
-      <div className="auth-top"><Brand /></div>
-      <div className="auth-orbit orbit-one" /><div className="auth-orbit orbit-two" />
+  return <main className="auth-shell">
+    <section className="auth-visual">
+      <Brand />
       <div className="auth-story">
-        <div className="eyebrow"><span className="eyebrow-dot" /> MADE FOR THE PEOPLE WHO MAKE IT HAPPEN</div>
-        <h1>Better laundry.<br /><em>Better together.</em></h1>
-        <p>One trusted network for the people who keep every order moving — from first pickup to fresh delivery.</p>
+        <div className="eyebrow">LAUNDTIME PARTNER NETWORK</div>
+        <h1>Earn on your terms with laundry dispatch.</h1>
+        <p>Pick up garments, manage washing operations, or handle doorstep deliveries in your neighborhood with real-time 7 KM GPS routing.</p>
         <div className="story-foot">
-          <div className="story-stat"><strong>01</strong><span>Partner-first<br />operations</span></div>
-          <div className="story-rule" />
-          <div className="story-stat"><strong>24/7</strong><span>Your work,<br />always in view</span></div>
+          <div className="story-stat"><strong>7 KM</strong><span>Auto detection radius</span></div>
+          <div className="story-stat"><strong>10-20%</strong><span>Instant task commission</span></div>
+          <div className="story-stat"><strong>Live GPS</strong><span>Real-time tracking</span></div>
         </div>
       </div>
-      <div className="auth-bottom"><span>LAUNDTIME PARTNER NETWORK</span><span>CHENNAI · INDIA</span></div>
-    </div>
+      <div className="auth-bottom">AUTOMATED DISPATCH · FIRST-COME FIRST-SERVED ASSIGNMENTS</div>
+    </section>
     <section className="auth-form-side">
-      <div className="mobile-brand"><Brand compact /></div>
-      <div className="auth-form-wrap">
-        <Link to="/" className="back-home"><ArrowLeft size={15} /> LaundTime home</Link>
+      <div className="auth-box">
         <div className="form-heading">
-          <div className="form-kicker">{isRegister ? "GROW WITH US" : "WELCOME BACK"}</div>
-          <h2>{isRegister ? "Join the partner network" : "Sign in to your account"}</h2>
-          <p>{isRegister ? "Tell us a little about your business to get started." : "Your next order is just a moment away."}</p>
+          <h2>{isRegister ? "Join the partner network" : "Partner workspace"}</h2>
+          <p>{isRegister ? "Submit your registration to start receiving laundry requests." : "Sign in to view available orders and route your active jobs."}</p>
         </div>
-        {(notice || error) && <div className="alert alert-error" role="alert">{notice || error}</div>}
+        {notice && <div className="auth-alert">{notice}</div>}
+        {error && <ErrorBanner message={error} onClose={() => setError("")} />}
         <form className="auth-form" onSubmit={submit}>
+          {isRegister && <label className="field"><span>Full name</span><input name="name" value={values.name} onChange={change} placeholder="Your name or business" required /></label>}
+          <label className="field"><span>Email address</span><input name="email" type="email" value={values.email} onChange={change} placeholder="name@work.com" required /></label>
+          <label className="field"><span>Password</span><input name="password" type="password" value={values.password} onChange={change} placeholder="••••••••" required /></label>
           {isRegister && <>
-            <label className="field"><span>Full name</span><input name="name" value={values.name} onChange={change} placeholder="Your name or business name" autoComplete="name" required /></label>
             <div className="field-row">
-              <label className="field"><span>Phone number</span><input name="phone" type="tel" value={values.phone} onChange={change} placeholder="+91 98765 43210" autoComplete="tel" required /></label>
-              <label className="field"><span>Partner type</span><select name="category" value={values.category} onChange={change}>{categories.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              <label className="field"><span>Phone number</span><input name="phone" type="tel" value={values.phone} onChange={change} placeholder="9876543210" required /></label>
+              <label className="field"><span>Service category</span><select name="category" value={values.category} onChange={change}>{categories.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             </div>
-          </>}
-          <label className="field"><span>Email address</span><input name="email" type="email" value={values.email} onChange={change} placeholder="you@business.com" autoComplete="email" required /></label>
-          <label className="field"><span>Password</span><input name="password" type="password" value={values.password} onChange={change} placeholder={isRegister ? "Create a password" : "Enter your password"} autoComplete={isRegister ? "new-password" : "current-password"} minLength={6} required /></label>
-          {isRegister && <>
-            <label className="field"><span>Street address</span><input name="address" value={values.address} onChange={change} placeholder="Shop or operating address" autoComplete="street-address" required /></label>
-            <div className="field-row field-row-three">
+            <label className="field"><span>Base address</span><input name="address" value={values.address} onChange={change} placeholder="Street / landmark" required /></label>
+            <div className="field-row-three">
               <label className="field"><span>City</span><input name="city" value={values.city} onChange={change} placeholder="City" required /></label>
-              <label className="field"><span>PIN code</span><input name="pincode" value={values.pincode} onChange={change} placeholder="600001" inputMode="numeric" required /></label>
+              <label className="field"><span>Pincode</span><input name="pincode" value={values.pincode} onChange={change} placeholder="600001" required /></label>
               <label className="field"><span>Service area</span><input name="serviceArea" value={values.serviceArea} onChange={change} placeholder="Area" required /></label>
             </div>
             <div className="form-note"><ShieldCheck size={16} /> Your details are shared only with LaundTime for partner verification.</div>
@@ -249,19 +255,101 @@ function AccountStatus({ user, status, signOut }) {
   </main>;
 }
 
-function PartnerLayout({ user, partner, onSignOut }) {
+function PartnerLayout({ user, partner: initialPartner, onSignOut }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [partner, setPartner] = useState(initialPartner);
+  const [togglingOnline, setTogglingOnline] = useState(false);
   const location = useLocation();
   const active = navItems.find((item) => item.path === location.pathname);
   const pageTitle = active?.label || "Partner workspace";
   const initials = (partner?.fullName || user?.name || "P").split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+
+  // Refresh profile
+  const refreshProfile = useCallback(() => {
+    API.get("/partner/me").then(({ data }) => setPartner(data.partner)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    refreshProfile();
+    window.addEventListener("partner-profile-updated", refreshProfile);
+    return () => window.removeEventListener("partner-profile-updated", refreshProfile);
+  }, [refreshProfile]);
+
+  // ── Requirement 7.4: Online/Available Toggle ──
+  const toggleAvailability = async () => {
+    setTogglingOnline(true);
+    try {
+      const nextState = !partner?.isAvailable;
+      if (navigator.geolocation && nextState) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const { data } = await API.patch("/partner/availability", {
+              isAvailable: nextState,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude
+            });
+            setPartner(prev => ({ ...prev, isAvailable: data.isAvailable, location: data.location }));
+            setTogglingOnline(false);
+          },
+          async () => {
+            const { data } = await API.patch("/partner/availability", { isAvailable: nextState });
+            setPartner(prev => ({ ...prev, isAvailable: data.isAvailable }));
+            setTogglingOnline(false);
+          }
+        );
+      } else {
+        const { data } = await API.patch("/partner/availability", { isAvailable: nextState });
+        setPartner(prev => ({ ...prev, isAvailable: data.isAvailable }));
+        setTogglingOnline(false);
+      }
+    } catch {
+      setTogglingOnline(false);
+    }
+  };
+
+  // ── Requirements 1, 2, 5: Live GPS Broadcaster ──
+  useEffect(() => {
+    if (!partner?.isAvailable) return;
+
+    // Periodic live GPS broadcaster when partner is online
+    const gpsInterval = setInterval(() => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            API.post("/partner/location", {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              speed: pos.coords.speed || 24,
+              heading: pos.coords.heading || 0
+            }).catch(() => {});
+          },
+          () => {
+            // Simulated heartbeat if browser denies raw device GPS
+            if (partner.location?.lat && partner.location?.lng) {
+              const jitterLat = partner.location.lat + (Math.random() - 0.5) * 0.0004;
+              const jitterLng = partner.location.lng + (Math.random() - 0.5) * 0.0004;
+              API.post("/partner/location", {
+                lat: jitterLat,
+                lng: jitterLng,
+                speed: 22
+              }).catch(() => {});
+            }
+          },
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      }
+    }, 8000);
+
+    return () => clearInterval(gpsInterval);
+  }, [partner?.isAvailable, partner?.location]);
+
   return <div className="workspace">
     <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
       <div className="sidebar-brand"><Brand /></div>
       <div className="workspace-chip"><span className="workspace-dot" /> PARTNER WORKSPACE <ChevronDown size={14} /></div>
       <div className="nav-caption">WORKSPACE</div>
       <nav className="side-nav" aria-label="Main navigation">
-        {navItems.map(({ path, label, Icon }) => <Link key={path} to={path} onClick={() => setMobileOpen(false)} className={`nav-link ${location.pathname === path ? "nav-active" : ""}`}><Icon size={18} /><span>{label}</span>{path === "/available" && <span className="nav-new"><span /> LIVE</span>}</Link>)}
+        {navItems.map(({ path, label, Icon }) => <Link key={path} to={path} onClick={() => setMobileOpen(false)} className={`nav-link ${location.pathname === path ? "nav-active" : ""}`}><Icon size={18} /><span>{label}</span>{path === "/available" && <span className="nav-new"><span /> 7 KM</span>}</Link>)}
       </nav>
       <div className="sidebar-spacer" />
       <div className="partner-mini">
@@ -269,7 +357,7 @@ function PartnerLayout({ user, partner, onSignOut }) {
         <div className="mini-copy"><strong>{partner?.fullName || user?.name}</strong><span>{categoryName(partner?.category)}</span></div>
         <button className="icon-button mini-logout" onClick={() => onSignOut()} title="Sign out" aria-label="Sign out"><LogOut size={16} /></button>
       </div>
-      <div className="sidebar-foot">© 2025 LaundTime <span>·</span> Partner care</div>
+      <div className="sidebar-foot">© 2025 LaundTime <span>·</span> Automated Dispatch</div>
     </aside>
     {mobileOpen && <button className="mobile-scrim" onClick={() => setMobileOpen(false)} aria-label="Close navigation" />}
     <div className="main-column">
@@ -277,7 +365,16 @@ function PartnerLayout({ user, partner, onSignOut }) {
         <button className="icon-button menu-button" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={21} /></button>
         <div className="breadcrumbs"><span>Workspace</span><span className="crumb-slash">/</span><strong>{pageTitle}</strong></div>
         <div className="topbar-right">
-          <div className="service-indicator"><span className="service-light" /> Service active</div>
+          {/* Live Online Availability Toggle Switch */}
+          <button
+            className={`partner-online-pill ${partner?.isAvailable ? "online-state" : "offline-state"}`}
+            onClick={toggleAvailability}
+            disabled={togglingOnline}
+            title={partner?.isAvailable ? "You are Online and receiving orders within 7 KM" : "You are Offline"}
+          >
+            <span className={`radar-dot ${partner?.isAvailable ? "dot-pulsing" : ""}`} />
+            {partner?.isAvailable ? "🟢 Online (7 KM Detection)" : "🔴 Offline (Tap to Work)"}
+          </button>
           <span className="topbar-divider" />
           <div className="topbar-greeting"><span>Good to see you,</span><strong>{(partner?.fullName || user?.name || "Partner").split(" ")[0]}</strong></div>
           <div className="top-avatar">{initials}</div>
@@ -285,7 +382,7 @@ function PartnerLayout({ user, partner, onSignOut }) {
       </header>
       <main className="page-content">
         <Routes>
-          <Route path="/" element={<Overview partner={partner} />} />
+          <Route path="/" element={<Overview partner={partner} onToggleOnline={toggleAvailability} />} />
           <Route path="/available" element={<OrdersPage type="available" partner={partner} />} />
           <Route path="/assigned" element={<OrdersPage type="assigned" partner={partner} />} />
           <Route path="/earnings" element={<EarningsPage />} />
@@ -293,7 +390,7 @@ function PartnerLayout({ user, partner, onSignOut }) {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      <footer className="page-footer"><span>LAUNDTIME <b>PARTNER NETWORK</b></span><a href="mailto:support@laundtime.com"><CircleHelp size={14} /> Partner support</a></footer>
+      <footer className="page-footer"><span>LAUNDTIME <b>PARTNER NETWORK</b> · 7 KM DISPATCH ENGINE</span><a href="mailto:support@laundtime.com"><CircleHelp size={14} /> Partner support</a></footer>
     </div>
   </div>;
 }
@@ -336,9 +433,9 @@ function useWorkspaceData() {
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Auto-refresh every 15 seconds so new orders appear without manual reload
+  // Auto-refresh every 8 seconds for real-time new order notifications
   useEffect(() => {
-    const interval = setInterval(() => refresh(), 15000);
+    const interval = setInterval(() => refresh(), 8000);
     return () => clearInterval(interval);
   }, [refresh]);
 
@@ -349,7 +446,7 @@ function PageIntro({ eyebrow, title, description, children }) {
   return <div className="page-intro"><div><div className="section-eyebrow">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div>{children && <div className="intro-actions">{children}</div>}</div>;
 }
 
-function Overview({ partner: topPartner }) {
+function Overview({ partner: topPartner, onToggleOnline }) {
   const data = useWorkspaceData();
   const partner = data.partner || topPartner;
   const activeOrders = data.assigned.filter((order) => order.status !== "delivered");
@@ -358,28 +455,38 @@ function Overview({ partner: topPartner }) {
     const now = new Date();
     return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
   }).reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+
   return <>
-    <PageIntro eyebrow="YOUR OPERATIONS, AT A GLANCE" title="Good work starts here." description="Your partner desk is ready. Here’s what’s moving today." >
+    <PageIntro eyebrow="REAL-TIME OPERATIONS DESK" title="Good work starts here." description="Automatic 7 KM partner detection is live. Orders appear instantly." >
       <div className="today-date"><CalendarDays size={16} /> {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</div>
     </PageIntro>
+
+    {/* Online Status Alert Card */}
+    <div className={`partner-dispatch-banner ${partner?.isAvailable ? "banner-online" : "banner-offline"}`}>
+      <div className="banner-left">
+        <span className="banner-icon"><Radio size={22} /></span>
+        <div>
+          <strong>{partner?.isAvailable ? "🟢 You are ONLINE & Active" : "🔴 You are OFFLINE"}</strong>
+          <p>{partner?.isAvailable ? "Orders placed within 7 KM of your location are automatically routed to your screen." : "Switch to Online mode to receive new nearby laundry pickup and delivery requests."}</p>
+        </div>
+      </div>
+      <button className="button button-small" onClick={onToggleOnline}>
+        {partner?.isAvailable ? "Go Offline" : "Go Online (Start Work)"}
+      </button>
+    </div>
+
     {data.error && <ErrorBanner message={data.error} retry={data.refresh} />}
     {data.loading ? <LoadingState label="Loading your dashboard" /> : <>
-      <section className="welcome-strip">
-        <div className="welcome-icon"><BriefcaseBusiness size={21} /></div>
-        <div className="welcome-copy"><strong>Your {categoryName(partner?.category).toLowerCase()} desk is active.</strong><span>New work for {partner?.serviceArea || partner?.city || "your service area"} appears as soon as it’s ready.</span></div>
-        <Link to="/available" className="welcome-link">Browse orders <ArrowRight size={15} /></Link>
-        <div className="welcome-decoration">LT<span>·</span></div>
-      </section>
       <section className="stats-grid" aria-label="Partner performance">
-        <StatCard label="Available orders" value={data.available.length} note="Ready for you to accept" Icon={PackageCheck} tone="blue" href="/available" />
-        <StatCard label="Active assignments" value={activeOrders.length} note="Orders in progress" Icon={Truck} tone="green" href="/assigned" />
-        <StatCard label="Earned this month" value={money(monthEarnings)} note="Based on completed tasks" Icon={Banknote} tone="amber" href="/earnings" />
-        <StatCard label="Total paid out" value={money(data.summary.paid)} note="Payouts received" Icon={ArrowDownLeft} tone="navy" href="/earnings" />
+        <StatCard label="Available (7 KM Radius)" value={data.available.length} note="Ready for you to accept" Icon={PackageCheck} tone="blue" href="/available" />
+        <StatCard label="Active jobs" value={activeOrders.length} note="Currently en route / in progress" Icon={Truck} tone="green" href="/assigned" />
+        <StatCard label="Earned this month" value={money(monthEarnings)} note="Commissions credited" Icon={Banknote} tone="amber" href="/earnings" />
+        <StatCard label="Total paid out" value={money(data.summary.paid)} note="Direct payouts" Icon={ArrowDownLeft} tone="navy" href="/earnings" />
       </section>
       <section className="dashboard-grid">
         <div className="panel recent-panel">
-          <div className="panel-heading"><div><h2>Latest assignments</h2><p>Your most recent order activity</p></div><Link to="/assigned" className="text-link">View all <ArrowRight size={15} /></Link></div>
-          {activeOrders.length ? <div className="recent-list">{activeOrders.slice(0, 4).map((order) => <OrderListRow key={order._id} order={order} />)}</div> : <EmptyState compact Icon={PackageCheck} title="Nothing on your route yet" description="Accepted orders will show up here." action={<Link to="/available" className="text-link">Find an order <ArrowRight size={14} /></Link>} />}
+          <div className="panel-heading"><div><h2>Latest assignments</h2><p>Your active pickup and delivery routes</p></div><Link to="/assigned" className="text-link">View all <ArrowRight size={15} /></Link></div>
+          {activeOrders.length ? <div className="recent-list">{activeOrders.slice(0, 4).map((order) => <OrderListRow key={order._id} order={order} />)}</div> : <EmptyState compact Icon={PackageCheck} title="Nothing on your route yet" description="Accept available orders to start picking up." action={<Link to="/available" className="text-link">Find orders within 7 KM <ArrowRight size={14} /></Link>} />}
         </div>
         <div className="panel earnings-panel">
           <div className="panel-heading"><div><h2>Earnings overview</h2><p>Your partner balance</p></div><span className="panel-icon"><Wallet size={17} /></span></div>
@@ -388,7 +495,7 @@ function Overview({ partner: topPartner }) {
           <Link to="/earnings" className="earnings-link">See earnings details <ArrowUpRight size={15} /></Link>
         </div>
       </section>
-      <div className="ops-footnote"><span><ShieldCheck size={16} /></span><p><strong>Every order, one clear next step.</strong> Update order progress as you work so customers know exactly where they stand.</p><Link to="/assigned">View assignments <ArrowRight size={14} /></Link></div>
+      <div className="ops-footnote"><span><ShieldCheck size={16} /></span><p><strong>First-Come, First-Served Assignment:</strong> The first eligible partner to click 'Accept' secures the job automatically without admin delays.</p><Link to="/available">Check nearby orders <ArrowRight size={14} /></Link></div>
     </>}
   </>;
 }
@@ -406,59 +513,132 @@ function OrdersPage({ type, partner: topPartner }) {
   const [actionError, setActionError] = useState("");
   const available = type === "available";
   const orders = available ? data.available : data.assigned;
+
   const filtered = useMemo(() => orders.filter((order) => {
     const text = `${orderNumber(order)} ${customerName(order)} ${locationText(order)}`.toLowerCase();
     return text.includes(query.toLowerCase()) && (statusFilter === "all" || order.status === statusFilter);
   }), [orders, query, statusFilter]);
+
+  // Requirement 7.5 & 7.6: Accept or Decline order
   const action = async (order, kind, value) => {
     setWorking(order._id);
     setActionError("");
     try {
-      if (kind === "accept") await API.post(`/partner/orders/${order._id}/accept`, {});
-      else await API.patch(`/partner/orders/${order._id}/status`, { status: value });
+      if (kind === "accept") {
+        await API.post(`/partner/orders/${order._id}/accept`, {});
+      } else if (kind === "reject") {
+        await API.post(`/partner/orders/${order._id}/reject`, {});
+      } else {
+        await API.patch(`/partner/orders/${order._id}/status`, { status: value });
+      }
       await data.refresh();
     } catch (error) {
       setActionError(getErrorMessage(error));
     } finally { setWorking(""); }
   };
+
   const statusesInList = [...new Set(orders.map((order) => order.status))];
+
   return <>
-    <PageIntro eyebrow={available ? "WORK NEAR YOU" : "YOUR ACTIVE WORK"} title={available ? "Available orders" : "My assignments"} description={available ? "Pick up the next order that fits your service area." : "Keep every accepted order moving to its next milestone."}>
-      <div className="order-total"><span>{orders.length}</span> {available ? "open" : "assigned"} {orders.length === 1 ? "order" : "orders"}</div>
+    <PageIntro eyebrow={available ? "7 KM RADAR DETECTION" : "ACTIVE ROUTE"} title={available ? "Available orders within 7 KM" : "My assignments"} description={available ? "First-come, first-served. Tap Accept to secure the order and start live GPS tracking." : "Update milestones as you progress. Customers track your real-time vehicle."}>
+      <div className="order-total"><span>{orders.length}</span> {available ? "available within 7 KM" : "assigned"} {orders.length === 1 ? "order" : "orders"}</div>
     </PageIntro>
+
     {actionError && <ErrorBanner message={actionError} onClose={() => setActionError("")} />}
     {data.error && <ErrorBanner message={data.error} retry={data.refresh} />}
+
     <div className="orders-toolbar">
       <label className="search-box"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search order, customer or area" /><kbd>⌘ K</kbd></label>
       <label className="filter-box"><Filter size={16} /><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">All statuses</option>{statusesInList.map((status) => <option key={status} value={status}>{statuses[status] || status}</option>)}</select><ChevronDown size={14} /></label>
     </div>
-    {data.loading ? <LoadingState label={available ? "Finding available orders" : "Loading your assignments"} /> : filtered.length ? <div className="orders-list">
+
+    {data.loading ? <LoadingState label={available ? "Scanning 7 KM radius for new orders" : "Loading your assignments"} /> : filtered.length ? <div className="orders-list">
       {filtered.map((order) => {
         const statusAction = !available && nextStatus(partner?.category, order.status);
-        return <OrderCard key={order._id} order={order} available={available} action={statusAction} busy={working === order._id} onAccept={() => action(order, "accept")} onStatus={(status) => action(order, "status", status)} />;
+        return <OrderCard
+          key={order._id}
+          order={order}
+          available={available}
+          action={statusAction}
+          busy={working === order._id}
+          onAccept={() => action(order, "accept")}
+          onReject={() => action(order, "reject")}
+          onStatus={(status) => action(order, "status", status)}
+        />;
       })}
-    </div> : <EmptyState Icon={available ? Search : PackageCheck} title={available ? query || statusFilter !== "all" ? "No matching orders" : "No new orders in your area" : query || statusFilter !== "all" ? "No matching assignments" : "Your assignments will appear here"} description={available ? query || statusFilter !== "all" ? "Try adjusting your search or status filter." : "You’re all caught up. New work will appear here when it matches your service." : query || statusFilter !== "all" ? "Try another search or choose a different status." : "Accept an available order and you’ll find it here."} action={available ? null : <Link to="/available" className="button button-secondary">Browse available orders <ArrowRight size={15} /></Link>} />}
-    </>;
+    </div> : <EmptyState Icon={available ? Search : PackageCheck} title={available ? query || statusFilter !== "all" ? "No matching orders" : "No open orders within 7 KM right now" : query || statusFilter !== "all" ? "No matching assignments" : "Your active assignments will appear here"} description={available ? query || statusFilter !== "all" ? "Try adjusting your search filter." : "You’re all caught up! New customer orders within 7 KM will pop up automatically." : query || statusFilter !== "all" ? "Try choosing a different status." : "Accept an open order from the Available tab to start picking up."} action={available ? null : <Link to="/available" className="button button-secondary">Browse available orders <ArrowRight size={15} /></Link>} />}
+  </>;
 }
 
-function OrderCard({ order, available, action, busy, onAccept, onStatus }) {
+function OrderCard({ order, available, action, busy, onAccept, onReject, onStatus }) {
   const date = order.customerDetails?.pickupDate;
   const itemCount = order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const distance = order.distanceKm ? `${order.distanceKm} KM away` : "Nearby";
+
   return <article className="order-card">
     <div className="order-card-head">
-      <div className="order-ref"><span>ORDER</span><strong>#{orderNumber(order)}</strong><span className="order-date"><CalendarDays size={13} /> {shortDate(date)}</span></div>
-      <StatusBadge status={order.status} />
+      <div className="order-ref">
+        <span>ORDER</span>
+        <strong>#{orderNumber(order)}</strong>
+        <span className="order-date"><CalendarDays size={13} /> {shortDate(date)}</span>
+      </div>
+      <div className="head-right-badges">
+        {available && (
+          <span className="distance-badge">
+            <Navigation size={12} /> {distance} · 7 KM Match
+          </span>
+        )}
+        <StatusBadge status={order.status} />
+      </div>
     </div>
     <div className="order-card-main">
-      <div className="order-customer-block"><div className="customer-avatar">{customerName(order).split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</div><div><strong>{customerName(order)}</strong><span>{order.customerDetails?.phone || order.user?.phone || "Phone unavailable"}</span></div></div>
-      <div className="order-info"><MapPin size={16} /><div><span>Service address</span><strong>{locationText(order) || "Address not provided"}</strong></div></div>
-      <div className="order-info"><Shirt size={16} /><div><span>Order items</span><strong>{itemCount || order.items?.length || 0} pieces <i>·</i> {order.items?.map((item) => item.name).filter(Boolean).slice(0, 2).join(", ") || "Laundry service"}</strong></div></div>
-      <div className="order-value"><span>Order value</span><strong>{money(order.totalAmount)}</strong></div>
+      <div className="order-customer-block">
+        <div className="customer-avatar">{customerName(order).split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</div>
+        <div>
+          <strong>{customerName(order)}</strong>
+          <span>{order.customerDetails?.phone || order.user?.phone || "Phone unavailable"}</span>
+        </div>
+      </div>
+      <div className="order-info"><MapPin size={16} /><div><span>Pickup Address</span><strong>{locationText(order) || "Address not provided"}</strong></div></div>
+      <div className="order-info"><Shirt size={16} /><div><span>Items</span><strong>{itemCount || order.items?.length || 0} pieces <i>·</i> {order.items?.map((item) => item.name).filter(Boolean).slice(0, 2).join(", ") || "Laundry service"}</strong></div></div>
+      <div className="order-value"><span>Payout Est.</span><strong>{money((order.totalAmount || 100) * 0.15)}</strong></div>
     </div>
     <div className="order-card-foot">
-      <div className="order-foot-meta"><span><Clock3 size={14} /> {order.customerDetails?.pickupTime || "Time flexible"}</span>{order.customerDetails?.city && <span><MapPin size={13} /> {order.customerDetails.city}</span>}</div>
+      <div className="order-foot-meta">
+        <span><Clock3 size={14} /> {order.customerDetails?.pickupTime || "Time flexible"}</span>
+        {order.customerDetails?.city && <span><MapPin size={13} /> {order.customerDetails.city}</span>}
+      </div>
       <div className="order-actions">
-        {available ? <button className="button button-primary button-small" disabled={busy} onClick={onAccept}>{busy ? <><span className="button-loader" /> Accepting</> : <>Accept order <ArrowRight size={15} /></>}</button> : action ? <button className={`button button-small ${action[0] === "delivered" ? "button-success" : "button-primary"}`} disabled={busy} onClick={() => onStatus(action[0])}>{busy ? <><span className="button-loader" /> Updating</> : <>{action[1]} <ArrowRight size={15} /></>}</button> : <span className="no-action"><CheckCircle2 size={15} /> Up to date</span>}
+        {available ? (
+          <div className="dual-order-buttons">
+            <button
+              className="button button-secondary button-small button-decline"
+              disabled={busy}
+              onClick={onReject}
+              title="Decline this order so another nearby partner can accept"
+            >
+              Decline
+            </button>
+            <button
+              className="button button-primary button-small button-accept"
+              disabled={busy}
+              onClick={onAccept}
+              title="First-come, first-served assignment"
+            >
+              {busy ? <><span className="button-loader" /> Accepting</> : <>Accept Order <ArrowRight size={15} /></>}
+            </button>
+          </div>
+        ) : action ? (
+          <button
+            className={`button button-small ${action[0] === "delivered" ? "button-success" : "button-primary"}`}
+            disabled={busy}
+            onClick={() => onStatus(action[0])}
+          >
+            {busy ? <><span className="button-loader" /> Updating</> : <>{action[1]} <ArrowRight size={15} /></>}
+          </button>
+        ) : (
+          <span className="no-action"><CheckCircle2 size={15} /> Up to date</span>
+        )}
       </div>
     </div>
   </article>;

@@ -127,13 +127,24 @@ export default function Orders() {
   const assignPartner = async (orderId, stage, partnerId) => {
     if (!partnerId) return notify('Select a partner first','error');
     try {
-      const res = await API.patch(`/partner/admin/orders/${orderId}/assign`, { stage, partnerId });
+      const res = await API.patch(`/orders/${orderId}/override-assign`, { stage, partnerId });
       const updated = res.data.order;
       setOrders(prev => prev.map(o => o._id===orderId ? {...o,...updated} : o));
       setSelOrder(prev => prev ? {...prev,...updated} : prev);
-      notify(`✅ ${stage.charAt(0).toUpperCase()+stage.slice(1)} partner assigned`);
+      notify(`✅ Admin override: ${stage.charAt(0).toUpperCase()+stage.slice(1)} partner assigned`);
       setAssigning({ stage:'', partnerId:'' });
-    } catch(e) { notify(e.response?.data?.message||'Assignment failed','error'); }
+    } catch(e) {
+      try {
+        const res2 = await API.patch(`/partner/admin/orders/${orderId}/assign`, { stage, partnerId });
+        const updated2 = res2.data.order;
+        setOrders(prev => prev.map(o => o._id===orderId ? {...o,...updated2} : o));
+        setSelOrder(prev => prev ? {...prev,...updated2} : prev);
+        notify(`✅ ${stage.charAt(0).toUpperCase()+stage.slice(1)} partner assigned`);
+        setAssigning({ stage:'', partnerId:'' });
+      } catch(err2) {
+        notify(err2.response?.data?.message||'Assignment failed','error');
+      }
+    }
   };
 
   // ── Filters ──────────────────────────────────────────────────────────────
@@ -321,6 +332,44 @@ export default function Orders() {
               <div className="assign-status-item">
                 <span>📦 Delivery</span>
                 <strong>{getPartnerName(selOrder.deliveryPartner)||'Not assigned'}</strong>
+              </div>
+            </div>
+
+            {/* ── 7 KM Radar Auto-Dispatch & Live Tracking Monitor (Req 7.9) ── */}
+            <div style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '10px',
+              padding: '.85rem 1rem',
+              margin: '1rem 0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '.4rem',
+              fontSize: '.825rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '.5rem' }}>
+                <span style={{ fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+                  📡 7 KM GPS Auto-Detection & Dispatch
+                </span>
+                <span style={{
+                  background: selOrder.dispatchInfo?.trackingActive ? '#dcfce7' : '#f3f4f6',
+                  color: selOrder.dispatchInfo?.trackingActive ? '#15803d' : '#6b7280',
+                  padding: '.2rem .6rem',
+                  borderRadius: '50px',
+                  fontWeight: 700,
+                  fontSize: '.72rem',
+                  border: '1px solid #cbd5e1'
+                }}>
+                  {selOrder.status === 'delivered' ? '✅ Delivered · Tracking Stopped' : selOrder.dispatchInfo?.trackingActive ? '🟢 Live GPS Streaming' : '⏳ Auto-Dispatch Active'}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '.5rem', marginTop: '.25rem' }}>
+                <div><span className="muted">Search Radius:</span> <strong>{selOrder.dispatchInfo?.searchRadiusKm || 7} KM</strong></div>
+                <div><span className="muted">Notified Partners:</span> <strong>{selOrder.dispatchInfo?.notifiedPartners?.length || 0} nearby</strong></div>
+                <div><span className="muted">Method:</span> <strong>First-Come, First-Served</strong></div>
+                {selOrder.partnerLocation?.lat && (
+                  <div><span className="muted">Live GPS:</span> <strong>{selOrder.partnerLocation.lat.toFixed(4)}, {selOrder.partnerLocation.lng.toFixed(4)}</strong></div>
+                )}
               </div>
             </div>
 

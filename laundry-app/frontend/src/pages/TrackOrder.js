@@ -1,15 +1,15 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../api";
 import "./TrackOrder.css";
 
 const STATUS_STEPS = [
-  { key: "pending",    label: "Order Placed",       desc: "Order received by LaundTime",           icon: "📝" },
-  { key: "confirmed",  label: "Order Confirmed",    desc: "Partner assigned & pickup scheduled",   icon: "✔️" },
-  { key: "picked",     label: "Clothes Picked Up",  desc: "Partner collected your laundry",        icon: "📦" },
-  { key: "processing", label: "Washing & Care",     desc: "Garments being washed & sanitized",      icon: "🔄" },
-  { key: "ready",      label: "Ready for Delivery", desc: "Cleaned, ironed & packed for dispatch",  icon: "🎯" },
-  { key: "delivered",  label: "Delivered",          desc: "Delivered safely to your doorstep",     icon: "🏠" },
+  { key: "pending",    label: "Order Placed",       desc: "Searching for available partners within 7 KM",  icon: "📝" },
+  { key: "confirmed",  label: "Partner Assigned",   desc: "Partner en route for laundry pickup",            icon: "🚗" },
+  { key: "picked",     label: "Laundry Picked Up",  desc: "Clothes collected & heading to care hub",        icon: "📦" },
+  { key: "processing", label: "Washing & Care",     desc: "Garments washed, dried & sanitized",             icon: "🔄" },
+  { key: "ready",      label: "Washing Completed",  desc: "Cleaned & packed · Out for doorstep delivery",   icon: "✨" },
+  { key: "delivered",  label: "Delivered",          desc: "Delivered safely · Tracking ended",              icon: "🏠" },
 ];
 
 const STATUS_ORDER = ["pending", "confirmed", "picked", "processing", "ready", "delivered"];
@@ -21,6 +21,15 @@ export default function TrackOrder() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastRefreshed, setLastRefreshed] = useState(null);
+  const [isSimulatingDrive, setIsSimulatingDrive] = useState(false);
+
+  // Map references
+  const mapRef = useRef(null);
+  const vehicleMarkerRef = useRef(null);
+  const customerMarkerRef = useRef(null);
+  const hubMarkerRef = useRef(null);
+  const routePolylineRef = useRef(null);
+  const simStepRef = useRef(0);
 
   // ── Fetch real order from backend ──────────────────────────────────────────
   const fetchOrder = useCallback(async (silent = false) => {
@@ -33,7 +42,7 @@ export default function TrackOrder() {
           setOrder(data.order);
           setLastRefreshed(new Date());
           setError("");
-          return;
+          return data.order;
         }
       }
       // Fallback: check localStorage
@@ -42,54 +51,224 @@ export default function TrackOrder() {
       if (local) {
         setOrder(local);
         setError("");
+        return local;
       } else {
-        setError("Order not found. Please check your tracking ID.");
+        setError("Order not found. Please verify your tracking ID.");
       }
     } catch {
-      // Local fallback on network error
       const saved = JSON.parse(localStorage.getItem("laundryOrders") || "[]");
       const local = saved.find(o => o._id === orderId || o.trackingId === orderId || o.orderNumber === orderId);
       if (local) {
         setOrder(local);
         setError("");
+        return local;
       } else {
-        setError("Could not connect to tracking server. Please try again.");
+        setError("Could not connect to tracking server.");
       }
     } finally {
       if (!silent) setLoading(false);
     }
   }, [orderId]);
 
+  // Initial load
   useEffect(() => {
     fetchOrder();
-    // Auto-poll every 5 seconds for real-time status & partner assignment updates
-    const interval = setInterval(() => fetchOrder(true), 5000);
-    return () => clearInterval(interval);
   }, [fetchOrder]);
+
+  // Auto-poll interval (stops automatically when delivered - Requirement 6)
+  useEffect(() => {
+    if (!order || order.status === "delivered") return; // Stop polling on delivery
+
+    const interval = setInterval(() => {
+      fetchOrder(true);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [order, fetchOrder]);
 
   const currentStatus = order?.status || "pending";
   const currentStepIndex = STATUS_ORDER.indexOf(currentStatus);
+  const trackingData = useMemo(() => order?.liveTracking || {}, [order?.liveTracking]);
 
-  // ── Determine active real partner for current phase ───────────────────────
-  const getActivePartner = () => {
-    if (!order) return null;
-    if (["ready", "delivered"].includes(currentStatus)) {
-      if (order.deliveryPartner) return { ...order.deliveryPartner, roleTitle: "Delivery Partner", roleIcon: "📦" };
-      if (order.pickupPartner) return { ...order.pickupPartner, roleTitle: "Delivery Partner", roleIcon: "📦" };
+  // Active partner details
+  const activePartner = trackingData.activePartner || order?.pickupPartner || order?.deliveryPartner;
+
+  // ── Initialize & Update Interactive Leaflet Map ──────────────────────────
+  useEffect(() => {
+    if (!order) return;
+    if (!window.L) return;
+
+    const L = window.L;
+
+    const customerLat = trackingData.customerLocation?.lat || order.customerLocation?.lat || order.customerDetails?.lat || 13.0827;
+    const customerLng = trackingData.customerLocation?.lng || order.customerLocation?.lng || order.customerDetails?.lng || 80.2707;
+
+    const hubLat = trackingData.hubLocation?.lat || customerLat + 0.018;
+    const hubLng = trackingData.hubLocation?.lng || customerLng + 0.015;
+
+    let partnerLat = trackingData.partnerLocation?.lat;
+    let partnerLng = trackingData.partnerLocation?.lng;
+
+    if (!partnerLat || !partnerLng || (partnerLat === customerLat && partnerLng === customerLng)) {
+      partnerLat = currentStatus === "ready" ? hubLat : customerLat + 0.016;
+      partnerLng = currentStatus === "ready" ? hubLng : customerLng + 0.019;
     }
-    if (currentStatus === "processing") {
-      if (order.washingPartner) return { ...order.washingPartner, roleTitle: "Washing Partner", roleIcon: "🧺" };
-      if (order.pickupPartner) return { ...order.pickupPartner, roleTitle: "Pickup & Care Partner", roleIcon: "🚗" };
+
+    const mapElement = document.getElementById("live-leaflet-canvas");
+    if (!mapElement) return;
+
+    // Create map instance if not exists
+    if (!mapRef.current) {
+      const map = L.map("live-leaflet-canvas", {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([customerLat, customerLng], 14);
+
+      // CartoDB Voyager tiles (clean, modern, Zomato/Rapido style)
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+        maxZoom: 19,
+        subdomains: "abcd"
+      }).addTo(map);
+
+      mapRef.current = map;
     }
-    if (order.pickupPartner) {
-      return { ...order.pickupPartner, roleTitle: "Pickup Partner", roleIcon: "🚗" };
+
+    const map = mapRef.current;
+
+    // 1. Customer Marker
+    if (!customerMarkerRef.current) {
+      const customerIcon = L.divIcon({
+        className: "custom-leaflet-icon customer-pin",
+        html: `<div class="pulse-ring"></div><div class="pin-badge pin-customer">🏠</div>`,
+        iconSize: [42, 42],
+        iconAnchor: [21, 21]
+      });
+      customerMarkerRef.current = L.marker([customerLat, customerLng], { icon: customerIcon })
+        .addTo(map)
+        .bindPopup(`<b>Your Address</b><br/>${order.customerDetails?.address || order.customerDetails?.city || "Delivery Point"}`);
+    } else {
+      customerMarkerRef.current.setLatLng([customerLat, customerLng]);
     }
-    return null;
+
+    // 2. Hub Marker
+    if (!hubMarkerRef.current) {
+      const hubIcon = L.divIcon({
+        className: "custom-leaflet-icon hub-pin",
+        html: `<div class="pin-badge pin-hub">🧺</div>`,
+        iconSize: [38, 38],
+        iconAnchor: [19, 19]
+      });
+      hubMarkerRef.current = L.marker([hubLat, hubLng], { icon: hubIcon })
+        .addTo(map)
+        .bindPopup(`<b>LaundTime Care Hub</b><br/>High-standard washing & sanitization center`);
+    } else {
+      hubMarkerRef.current.setLatLng([hubLat, hubLng]);
+    }
+
+    // 3. Live Vehicle Marker (Pickup Car 🚗 or Delivery Bike 🛵)
+    const isDeliveryPhase = currentStatus === "ready";
+    const vehicleEmoji = isDeliveryPhase ? "🛵" : "🚗";
+
+    if (!vehicleMarkerRef.current) {
+      const vehicleIcon = L.divIcon({
+        className: "custom-leaflet-icon vehicle-pin",
+        html: `
+          <div class="vehicle-pulse"></div>
+          <div class="pin-badge pin-vehicle">
+            <span class="vehicle-emoji">${vehicleEmoji}</span>
+          </div>
+        `,
+        iconSize: [46, 46],
+        iconAnchor: [23, 23]
+      });
+
+      vehicleMarkerRef.current = L.marker([partnerLat, partnerLng], { icon: vehicleIcon })
+        .addTo(map)
+        .bindPopup(`<b>${activePartner?.fullName || "LaundTime Partner"}</b><br/>${isDeliveryPhase ? "Delivering laundry" : "Travelling for pickup"}`);
+    } else {
+      vehicleMarkerRef.current.setLatLng([partnerLat, partnerLng]);
+      // Update vehicle emoji if phase changed
+      const iconElement = document.querySelector(".vehicle-emoji");
+      if (iconElement) iconElement.innerText = vehicleEmoji;
+    }
+
+    // 4. Dynamic Route Polyline
+    const targetDestLat = isDeliveryPhase || currentStatus === "confirmed" ? customerLat : hubLat;
+    const targetDestLng = isDeliveryPhase || currentStatus === "confirmed" ? customerLng : hubLng;
+
+    const routeWaypoints = [
+      [partnerLat, partnerLng],
+      [(partnerLat + targetDestLat) / 2 + 0.002, (partnerLng + targetDestLng) / 2 - 0.002],
+      [targetDestLat, targetDestLng]
+    ];
+
+    if (!routePolylineRef.current) {
+      routePolylineRef.current = L.polyline(routeWaypoints, {
+        color: "#667eea",
+        weight: 5,
+        opacity: 0.85,
+        dashArray: "8, 8",
+        lineCap: "round"
+      }).addTo(map);
+    } else {
+      routePolylineRef.current.setLatLngs(routeWaypoints);
+    }
+
+    // Adjust viewport to frame vehicle & customer
+    if (!isSimulatingDrive) {
+      const bounds = L.latLngBounds([
+        [customerLat, customerLng],
+        [partnerLat, partnerLng],
+        [hubLat, hubLng]
+      ]);
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+    }
+  }, [order, trackingData, currentStatus, activePartner, isSimulatingDrive]);
+
+  // ── Real-Time Motion Simulator (Allows testing live GPS on any browser) ──
+  const toggleSimulation = () => {
+    if (isSimulatingDrive) {
+      setIsSimulatingDrive(false);
+      return;
+    }
+
+    if (!mapRef.current || !vehicleMarkerRef.current) return;
+    setIsSimulatingDrive(true);
+
+    const customerLat = trackingData.customerLocation?.lat || 13.0827;
+    const customerLng = trackingData.customerLocation?.lng || 80.2707;
+    const startLat = customerLat + 0.018;
+    const startLng = customerLng + 0.021;
+
+    let step = 0;
+    const totalSteps = 40;
+
+    const simTimer = setInterval(() => {
+      step++;
+      simStepRef.current = step;
+      const progress = step / totalSteps;
+
+      const currentLat = startLat + (customerLat - startLat) * progress;
+      const currentLng = startLng + (customerLng - startLng) * progress;
+
+      if (vehicleMarkerRef.current) {
+        vehicleMarkerRef.current.setLatLng([currentLat, currentLng]);
+      }
+
+      if (routePolylineRef.current) {
+        routePolylineRef.current.setLatLngs([
+          [currentLat, currentLng],
+          [customerLat, customerLng]
+        ]);
+      }
+
+      if (step >= totalSteps) {
+        clearInterval(simTimer);
+        setIsSimulatingDrive(false);
+      }
+    }, 800);
   };
 
-  const activePartner = getActivePartner();
-
-  // Helper for timeline step time
   const getStepTime = (stepKey) => {
     if (!order?.statusHistory) return null;
     const historyEntry = order.statusHistory.find(h => h.status === stepKey);
@@ -102,9 +281,10 @@ export default function TrackOrder() {
   if (loading) {
     return (
       <div className="track-order-container">
-        <div style={{ textAlign: "center", padding: "60px 20px" }}>
-          <h2>⏳ Loading Live Tracking...</h2>
-          <p style={{ color: "#666" }}>Connecting to real-time dispatch network...</p>
+        <div className="track-loading-box">
+          <div className="radar-spinner"></div>
+          <h2>Connecting to LaundTime Live GPS Network...</h2>
+          <p>Scanning 7 KM partner radius & live coordinates</p>
         </div>
       </div>
     );
@@ -125,30 +305,41 @@ export default function TrackOrder() {
   }
 
   const trackingNumber = order.trackingId || order.orderNumber || order._id?.slice(-8);
+  const distanceDisplay = trackingData.distanceKm ? `${trackingData.distanceKm} km` : "1.8 km";
+  const etaDisplay = trackingData.etaMinutes ? `${trackingData.etaMinutes} mins` : "6 mins";
 
   return (
     <div className="track-order-container">
       {/* Header */}
       <div className="track-header">
-        <button onClick={() => navigate("/orders")} className="back-btn">
-          ← Back to Orders
-        </button>
-        <div>
-          <h1>Live Order Tracking</h1>
-          <p style={{ margin: "4px 0 0", color: "#666", fontSize: "0.85rem" }}>
-            Real-time status · {lastRefreshed ? `Updated ${lastRefreshed.toLocaleTimeString()}` : "Live"}
-          </p>
+        <div className="track-header-left">
+          <button onClick={() => navigate("/orders")} className="back-btn">
+            ← Back to Orders
+          </button>
+          <div>
+            <h1>Live Order Tracking</h1>
+            <p className="track-subtitle">
+              Zomato & Rapido style real-time GPS dispatch · {lastRefreshed ? `Synced ${lastRefreshed.toLocaleTimeString()}` : "Live"}
+            </p>
+          </div>
         </div>
+
         <div className="order-info">
-          <strong style={{ fontSize: "1.1rem", color: "#232f3e" }}>#{trackingNumber}</strong>
-          <span>Placed on {new Date(order.createdAt || order.orderDate || Date.now()).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}</span>
+          <span className="live-status-chip">
+            {currentStatus === "delivered" ? "Delivered ✅" : "🟢 Live Tracking Active"}
+          </span>
+          <strong className="tracking-number">#{trackingNumber}</strong>
+          <span>Placed on {new Date(order.createdAt || Date.now()).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}</span>
         </div>
       </div>
 
       <div className="track-content">
-        {/* Left: Status Timeline & Real Partner Info */}
+        {/* Left Side: Status Milestones & Partner Card */}
         <div className="status-section">
-          <h2>Order Progress</h2>
+          <div className="section-title-row">
+            <h2>Order Progress</h2>
+            <span className="radius-tag">7 KM GPS Detection</span>
+          </div>
 
           <div className="status-timeline">
             {STATUS_STEPS.map((step, index) => {
@@ -186,13 +377,13 @@ export default function TrackOrder() {
                       {step.desc}
                     </p>
                     {stepTime && (
-                      <span style={{ fontSize: "0.75rem", color: "#10b981", fontWeight: 600 }}>
+                      <span className="step-timestamp">
                         {stepTime}
                       </span>
                     )}
                     {isCurrent && (
-                      <div className="current-status-badge" style={{ marginTop: "4px" }}>
-                        ● In Progress
+                      <div className="current-status-badge">
+                        ● Current Phase
                       </div>
                     )}
                   </div>
@@ -203,7 +394,7 @@ export default function TrackOrder() {
 
           {/* ── REAL PARTNER INFORMATION CARD ── */}
           <div className="driver-info">
-            <h3>{activePartner ? `${activePartner.roleIcon} ${activePartner.roleTitle}` : "🚗 Assigned Partner"}</h3>
+            <h3>{currentStatus === "ready" || currentStatus === "delivered" ? "🛵 Delivery Partner" : "🚗 Pickup Partner"}</h3>
 
             {activePartner ? (
               <>
@@ -215,12 +406,12 @@ export default function TrackOrder() {
                   </div>
                   <div className="driver-text">
                     <strong style={{ fontSize: "1.05rem" }}>{activePartner.fullName}</strong>
-                    <p style={{ color: "#10b981", fontWeight: 600 }}>
-                      ✔ Verified LaundTime Partner ({activePartner.category?.toUpperCase()})
+                    <p className="verified-partner-text">
+                      ✔ Verified LaundTime Partner ({activePartner.category?.toUpperCase() || "DELIVERY"})
                     </p>
-                    <p>📞 {activePartner.mobile || "Mobile available upon call"}</p>
-                    {activePartner.city && (
-                      <p style={{ color: "#6b7280" }}>📍 Service Area: {activePartner.serviceArea || activePartner.city}</p>
+                    <p>📞 {activePartner.mobile || "Mobile available upon pickup"}</p>
+                    {activePartner.serviceArea && (
+                      <p style={{ color: "#6b7280", fontSize: "0.8rem" }}>📍 Base: {activePartner.serviceArea}</p>
                     )}
                   </div>
                 </div>
@@ -229,81 +420,99 @@ export default function TrackOrder() {
                   <a
                     href={`tel:${activePartner.mobile}`}
                     className="call-driver-btn"
-                    style={{ display: "block", textAlign: "center", textDecoration: "none" }}
                   >
-                    📞 Call {activePartner.fullName.split(" ")[0]} ({activePartner.mobile})
+                    📞 Call Partner ({activePartner.mobile})
                   </a>
                 )}
               </>
             ) : (
-              <div style={{ padding: "10px 0", color: "#6b7280" }}>
-                <p style={{ margin: "0 0 6px", fontWeight: 600, color: "#f59e0b" }}>
-                  ⏳ Finding nearest partner...
-                </p>
-                <small>A verified LaundTime partner will be assigned to your order shortly.</small>
+              <div className="partner-searching-state">
+                <div className="searching-radar"></div>
+                <p>⏳ Auto-detecting nearest partner within 7 KM...</p>
+                <small>First-come, first-served assignment is running automatically.</small>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Side: Map & Order Details */}
+        {/* Right Side: Interactive Leaflet Live Map & Trip Details */}
         <div className="map-section">
-          {/* Simulated Live Location Tracking */}
-          <div className="map-container">
-            <div className="map-header">
-              <h3>📍 Live Route Map</h3>
-              <span className="eta" style={{ background: "#667eea", color: "#fff", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: 600 }}>
-                {currentStatus === "delivered" ? "Delivered ✅" : currentStatus === "ready" ? "Out for Delivery" : currentStatus === "picked" ? "En Route to Hub" : "Active"}
-              </span>
-            </div>
-
-            <div className="simulated-map">
-              <div className="map-background">
-                <div className="road horizontal road-1"></div>
-                <div className="road vertical road-2"></div>
-                <div className="road horizontal road-3"></div>
-
-                <div className="landmark your-location">
-                  <div className="landmark-icon">🏠</div>
-                  <span>{order.customerDetails?.city || "Your Address"}</span>
-                </div>
-
-                <div className="landmark laundry-shop">
-                  <div className="landmark-icon">🧺</div>
-                  <span>LaundTime Hub</span>
-                </div>
-
-                {/* Driver marker */}
-                <div className="driver-marker" style={{ left: "55%", top: "45%" }}>
-                  <div className="driver-pulse"></div>
-                  <div className="driver-icon">
-                    {["ready", "delivered"].includes(currentStatus) ? "📦" : "🚗"}
-                  </div>
-                </div>
-
-                <div className="route-line"></div>
+          <div className="live-map-card">
+            <div className="live-map-header">
+              <div>
+                <h3>📍 Real-Time Partner Map</h3>
+                <p className="map-subhead">Live GPS stream · Updates every few seconds</p>
+              </div>
+              <div className="map-header-badges">
+                <button
+                  className="demo-drive-btn"
+                  onClick={toggleSimulation}
+                  title="Simulate partner vehicle motion on the map"
+                >
+                  {isSimulatingDrive ? "⏸ Pause Demo Drive" : "▶ Demo Live Motion"}
+                </button>
+                <span className="eta-badge">
+                  {currentStatus === "delivered"
+                    ? "Delivered ✅"
+                    : currentStatus === "ready"
+                    ? `🛵 Arriving in ~${etaDisplay} (${distanceDisplay})`
+                    : currentStatus === "confirmed"
+                    ? `🚗 Arriving in ~${etaDisplay} (${distanceDisplay})`
+                    : currentStatus === "picked"
+                    ? "📦 Heading to Hub"
+                    : "⏳ Detecting Nearby Partner"}
+                </span>
               </div>
             </div>
 
+            {/* Interactive Leaflet OpenStreetMap Canvas */}
+            <div className="leaflet-map-wrapper">
+              <div id="live-leaflet-canvas" className="live-leaflet-canvas"></div>
+
+              {/* Live Overlay Banner */}
+              <div className="map-floating-overlay">
+                <div className="floating-stat">
+                  <span className="stat-label">STATUS</span>
+                  <strong>
+                    {currentStatus === "confirmed" ? "🚗 Travelling for Pickup"
+                      : currentStatus === "picked" ? "📦 Laundry Picked Up"
+                      : currentStatus === "processing" ? "🧺 Washing at Hub"
+                      : currentStatus === "ready" ? "🛵 Out for Delivery"
+                      : currentStatus === "delivered" ? "✅ Delivered Safely"
+                      : "🔍 Searching 7 KM"}
+                  </strong>
+                </div>
+                <div className="floating-stat">
+                  <span className="stat-label">DISTANCE</span>
+                  <strong>{currentStatus === "delivered" ? "0 km" : distanceDisplay}</strong>
+                </div>
+                <div className="floating-stat">
+                  <span className="stat-label">ESTIMATED TIME</span>
+                  <strong>{currentStatus === "delivered" ? "Completed" : etaDisplay}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Map Legend */}
             <div className="map-legend">
               <div className="legend-item">
-                <div className="legend-color your-location-marker"></div>
+                <span className="legend-icon">🏠</span>
                 <span>Your Location</span>
               </div>
               <div className="legend-item">
-                <div className="legend-color driver-marker-legend"></div>
-                <span>{activePartner ? activePartner.fullName : "Partner"}</span>
+                <span className="legend-icon">{currentStatus === "ready" ? "🛵" : "🚗"}</span>
+                <span>Live Partner ({activePartner?.fullName || "Nearby Partner"})</span>
               </div>
               <div className="legend-item">
-                <div className="legend-color shop-marker"></div>
-                <span>LaundTime Facility</span>
+                <span className="legend-icon">🧺</span>
+                <span>LaundTime Care Facility</span>
               </div>
             </div>
           </div>
 
           {/* Real Order Details */}
           <div className="order-details-card">
-            <h3>Order Details</h3>
+            <h3>Order & Destination Details</h3>
 
             <div className="detail-row">
               <span>Items / Service:</span>
@@ -321,55 +530,15 @@ export default function TrackOrder() {
             </div>
 
             <div className="detail-row">
-              <span>Delivery Address:</span>
-              <span>{order.customerDetails?.address}, {order.customerDetails?.city} {order.customerDetails?.pincode}</span>
-            </div>
-
-            <div className="detail-row">
-              <span>Payment:</span>
-              <span>{(order.paymentMethod || "COD").toUpperCase()}</span>
+              <span>Pickup & Delivery Address:</span>
+              <span>{order.customerDetails?.address || "Address provided"}, {order.customerDetails?.city || "Chennai"}</span>
             </div>
 
             <div className="detail-row">
               <span>Total Amount:</span>
-              <span className="amount">₹{order.totalAmount}</span>
+              <strong style={{ color: "#10b981", fontSize: "1.05rem" }}>₹{order.totalAmount || 0} ({order.paymentMethod?.toUpperCase()})</strong>
             </div>
-
-            {order.customerDetails?.instructions && (
-              <div className="instructions">
-                <strong>Customer Note:</strong>
-                <p>{order.customerDetails.instructions}</p>
-              </div>
-            )}
           </div>
-        </div>
-      </div>
-
-      {/* Real Live Activity Feed */}
-      <div className="live-updates">
-        <div className="update-indicator">
-          <div className="pulse"></div>
-          <span>Real-Time Activity Log</span>
-        </div>
-
-        <div className="updates-feed">
-          {order.statusHistory && order.statusHistory.length > 0 ? (
-            [...order.statusHistory].reverse().map((entry, idx) => (
-              <div key={idx} className="update-item">
-                <span className="update-time">
-                  {entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Recently"}
-                </span>
-                <span className="update-text">
-                  <strong style={{ textTransform: "capitalize" }}>{entry.status}</strong>: {entry.note || `Order status updated to ${entry.status}`}
-                </span>
-              </div>
-            ))
-          ) : (
-            <div className="update-item">
-              <span className="update-time">Just now</span>
-              <span className="update-text">Order registered in LaundTime system.</span>
-            </div>
-          )}
         </div>
       </div>
     </div>

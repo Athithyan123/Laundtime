@@ -15,6 +15,21 @@ const PartnerSchema = new mongoose.Schema({
   serviceArea: { type: String, required: true, trim: true },
   identityDocuments: [{ type: String, trim: true }],
   profilePhoto: { type: String, default: null },
+
+  // ── Real-Time Availability & Live GPS Tracking ──
+  isAvailable: { type: Boolean, default: true }, // Online / Offline toggle
+  serviceRadiusKm: { type: Number, default: 7 }, // 7 KM operating radius
+  location: {
+    lat: { type: Number, default: 13.0827 },
+    lng: { type: Number, default: 80.2707 },
+    heading: { type: Number, default: 0 },
+    speed: { type: Number, default: 0 },
+    address: { type: String, default: "" },
+    updatedAt: { type: Date, default: Date.now }
+  },
+  activeOrder: { type: mongoose.Schema.Types.ObjectId, ref: "Order", default: null },
+  rejectedOrders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
+
   paymentDetails: {
     accountName: String,
     accountNumber: String,

@@ -41,7 +41,7 @@ const OrderSchema = new mongoose.Schema({
   // ── Express ──
   isExpress: { type: Boolean, default: false },
 
-  // ── Customer details ──
+  // ── Customer details & GPS Coordinates ──
   customerDetails: {
     name:        { type: String, required: true, default: "Customer" },
     email:       { type: String, default: "" },
@@ -51,7 +51,16 @@ const OrderSchema = new mongoose.Schema({
     pincode:     { type: String, required: true, default: "600001" },
     pickupDate:  { type: Date, required: true, default: Date.now },
     pickupTime:  { type: String, default: "10:00 AM - 12:00 PM" },
-    instructions:{ type: String, default: "" }
+    instructions:{ type: String, default: "" },
+    lat:         { type: Number, default: 13.0827 },
+    lng:         { type: Number, default: 80.2707 }
+  },
+
+  // Customer Pickup GPS Location
+  customerLocation: {
+    lat: { type: Number, default: 13.0827 },
+    lng: { type: Number, default: 80.2707 },
+    address: { type: String, default: "" }
   },
 
   // ── Payment ──
@@ -79,7 +88,7 @@ const OrderSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
   }],
 
-  // ── Rider ──
+  // ── Partner Assignments ──
   rider: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -100,10 +109,28 @@ const OrderSchema = new mongoose.Schema({
     ref: "Partner",
     default: null
   },
-  riderLocation: {
-    lat: Number,
-    lng: Number,
-    updatedAt: Date
+
+  // ── Real-Time Live Partner GPS Location (Zomato / Rapido style) ──
+  partnerLocation: {
+    lat:       { type: Number, default: 13.0850 },
+    lng:       { type: Number, default: 80.2750 },
+    heading:   { type: Number, default: 0 },
+    speed:     { type: Number, default: 0 },
+    updatedAt: { type: Date, default: Date.now }
+  },
+
+  // ── Automated Dispatch & 7 KM Radius Tracking Engine ──
+  dispatchInfo: {
+    autoDispatched:   { type: Boolean, default: true },
+    stage:            { type: String, enum: ["pickup", "washing", "delivery", "completed"], default: "pickup" },
+    searchRadiusKm:   { type: Number, default: 7 },
+    notifiedPartners: [{ type: mongoose.Schema.Types.ObjectId, ref: "Partner" }],
+    rejectedPartners: [{ type: mongoose.Schema.Types.ObjectId, ref: "Partner" }],
+    assignedAt:       { type: Date, default: null },
+    trackingActive:   { type: Boolean, default: false },
+    trackingStartedAt:{ type: Date, default: null },
+    trackingEndedAt:  { type: Date, default: null },
+    lastRadiusExpansionAt: { type: Date, default: null }
   },
 
   // ── Branch ──
@@ -114,10 +141,10 @@ const OrderSchema = new mongoose.Schema({
   },
 
   // ── QR & Tracking ──
-  qrCode:    { type: String, default: null },   // unique QR payload
+  qrCode:    { type: String, default: null },
   trackingId:{ type: String, unique: true, sparse: true },
 
-  // ── Photos (before pickup) ──
+  // ── Photos (before pickup & after delivery) ──
   beforePhotos: [{ url: String, uploadedAt: Date }],
   afterPhotos:  [{ url: String, uploadedAt: Date }],
 
@@ -153,6 +180,13 @@ OrderSchema.pre("save", function (next) {
   if (!this.invoiceNumber && this.status !== "pending") {
     const d = new Date();
     this.invoiceNumber = `INV-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}-${Math.floor(Math.random()*90000+10000)}`;
+  }
+  // Synchronize customerLocation with customerDetails
+  if (this.customerDetails?.lat && this.customerDetails?.lng) {
+    if (!this.customerLocation) this.customerLocation = {};
+    this.customerLocation.lat = this.customerDetails.lat;
+    this.customerLocation.lng = this.customerDetails.lng;
+    this.customerLocation.address = this.customerDetails.address || "";
   }
   next();
 });
