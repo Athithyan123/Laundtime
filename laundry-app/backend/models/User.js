@@ -28,7 +28,20 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     default: "user",
-    enum: ["user", "admin", "rider", "partner"]
+    enum: ["user", "admin", "rider", "partner", "super-admin", "manager", "support"]
+  },
+  adminRole: {
+    type: String,
+    default: "admin"
+  },
+  status: {
+    type: String,
+    enum: ["active", "inactive", "suspended"],
+    default: "active"
+  },
+  lastLogin: {
+    type: Date,
+    default: null
   },
 
   // ── Loyalty Points ──

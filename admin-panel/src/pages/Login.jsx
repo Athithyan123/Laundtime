@@ -6,8 +6,8 @@ import '../styles/login.css';
 export default function Login() {
   const { login, loading, error } = useAuth();
   const navigate = useNavigate();
-  const [email,    setEmail]    = useState('admin@laundry.com');
-  const [password, setPassword] = useState('admin123');
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
   const [show,     setShow]     = useState(false);
 
   const handleSubmit = async (e) => {
@@ -32,7 +32,7 @@ export default function Login() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="admin@laundry.com"
+              placeholder="Enter your admin email"
               required
             />
           </div>
@@ -44,7 +44,7 @@ export default function Login() {
                 type={show ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter password"
                 required
               />
               <button type="button" className="eye-btn" onClick={() => setShow(s => !s)}>
@@ -59,11 +59,6 @@ export default function Login() {
             {loading ? 'Signing in...' : '🔐 Sign In as Admin'}
           </button>
         </form>
-
-        <div className="login-hint">
-          <p>Demo credentials pre-filled above</p>
-          <p><strong>admin@laundry.com</strong> / <strong>admin123</strong></p>
-        </div>
       </div>
     </div>
   );

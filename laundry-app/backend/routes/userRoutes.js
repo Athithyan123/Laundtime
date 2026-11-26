@@ -242,4 +242,132 @@ router.get("/customers/:id", protect, isAdmin, async (req, res) => {
   }
 });
 
+// @desc    Get all admin / staff accounts
+// @route   GET /api/users/admins
+router.get("/admins", protect, isAdmin, async (req, res) => {
+  try {
+    const adminRoles = ["admin", "super-admin", "manager", "support"];
+    const admins = await User.find({
+      role: { $in: adminRoles }
+    }).select("-password").sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      admins: admins.map(a => ({
+        _id: a._id,
+        name: a.name,
+        email: a.email,
+        role: a.adminRole || a.role || "admin",
+        status: a.status || "active",
+        lastLogin: a.lastLogin,
+        createdAt: a.createdAt
+      }))
+    });
+  } catch (err) {
+    console.error("Fetch admins error:", err);
+    res.status(500).json({ success: false, message: "Failed to fetch admin accounts", error: err.message });
+  }
+});
+
+// @desc    Create a new real working admin account in MongoDB Atlas
+// @route   POST /api/users/admins
+router.post("/admins", protect, isAdmin, async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: "Name, email, and password are required" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const existing = await User.findOne({ email: cleanEmail });
+    if (existing) {
+      return res.status(400).json({ success: false, message: "An account with this email already exists" });
+    }
+
+    const validRoles = ["super-admin", "manager", "support", "admin"];
+    const selectedRole = validRoles.includes(role) ? role : "admin";
+
+    // User.create invokes userSchema.pre('save') which hashes password with bcrypt
+    const newAdmin = await User.create({
+      name: name.trim(),
+      email: cleanEmail,
+      password,
+      role: "admin",
+      adminRole: selectedRole,
+      status: "active"
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Admin account created successfully and active for login",
+      admin: {
+        _id: newAdmin._id,
+        name: newAdmin.name,
+        email: newAdmin.email,
+        role: newAdmin.adminRole,
+        status: newAdmin.status,
+        lastLogin: null,
+        createdAt: newAdmin.createdAt
+      }
+    });
+  } catch (err) {
+    console.error("Create admin error:", err);
+    res.status(500).json({ success: false, message: "Failed to create admin account", error: err.message });
+  }
+});
+
+// @desc    Toggle admin status (active/inactive)
+// @route   PATCH /api/users/admins/:id/status
+router.patch("/admins/:id/status", protect, isAdmin, async (req, res) => {
+  try {
+    const adminToUpdate = await User.findById(req.params.id);
+    if (!adminToUpdate) {
+      return res.status(404).json({ success: false, message: "Admin account not found" });
+    }
+
+    if (adminToUpdate.email === "admin@laundry.com" || adminToUpdate._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: "Cannot deactivate primary super admin or your own account" });
+    }
+
+    adminToUpdate.status = adminToUpdate.status === "active" ? "inactive" : "active";
+    await adminToUpdate.save();
+
+    res.json({
+      success: true,
+      message: `Admin account is now ${adminToUpdate.status}`,
+      admin: {
+        _id: adminToUpdate._id,
+        status: adminToUpdate.status
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to update admin status", error: err.message });
+  }
+});
+
+// @desc    Delete an admin account
+// @route   DELETE /api/users/admins/:id
+router.delete("/admins/:id", protect, isAdmin, async (req, res) => {
+  try {
+    const adminToDelete = await User.findById(req.params.id);
+    if (!adminToDelete) {
+      return res.status(404).json({ success: false, message: "Admin account not found" });
+    }
+
+    if (adminToDelete.email === "admin@laundry.com" || adminToDelete._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: "Cannot delete primary super admin or your own account" });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "Admin account removed successfully" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to delete admin account", error: err.message });
+  }
+});
+
 export default router;

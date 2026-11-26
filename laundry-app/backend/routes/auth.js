@@ -102,19 +102,37 @@ router.post("/admin/login", async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ message: "Email and password are required" });
 
-    const user = await User.findOne({ email: email.toLowerCase().trim(), role: "admin" });
+    const user = await User.findOne({
+      email: email.toLowerCase().trim(),
+      role: { $in: ["admin", "super-admin", "manager", "support"] }
+    });
     if (!user)
       return res.status(401).json({ message: "No admin account found with this email" });
+
+    if (user.status === "inactive" || user.status === "suspended") {
+      return res.status(403).json({ message: "This admin account has been deactivated. Contact super admin." });
+    }
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid password" });
 
+    user.lastLogin = new Date();
+    await user.save();
+
     const token = generateToken(user._id);
     res.json({
       message: "Admin login successful",
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        adminRole: user.adminRole || user.role,
+        status: user.status
+      }
     });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LaundTime - Startup Project Specification & Architecture Whitepaper</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
+  </script>
+  <style>
+    :root {
+      --primary: #4338ca;
+      --primary-light: #e0e7ff;
+      --secondary: #0ea5e9;
+      --dark: #0f172a;
+      --text: #334155;
+      --text-muted: #64748b;
+      --bg: #ffffff;
+      --card-bg: #f8fafc;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      background: #f1f5f9;
+      line-height: 1.65;
+      font-size: 14.5px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .doc-container {
+      max-width: 960px;
+      margin: 30px auto;
+      background: var(--bg);
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      padding: 55px 65px;
+    }
+
+    /* Floating action toolbar */
+    .action-bar {
+      position: sticky;
+      top: 15px;
+      z-index: 100;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-bottom: 25px;
+    }
+
+    .btn-download {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 99px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35);
+      transition: all 0.2s;
+    }
+
+    .btn-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(79, 70, 229, 0.45);
+    }
+
+    /* Cover / Header section */
+    .cover-header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 30px;
+      margin-bottom: 35px;
+    }
+
+    .badge-pill {
+      display: inline-block;
+      padding: 5px 14px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border-radius: 99px;
+      background: var(--primary-light);
+      color: var(--primary);
+      margin-bottom: 15px;
+    }
+
+    h1.doc-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--dark);
+      letter-spacing: -0.6px;
+      line-height: 1.25;
+      margin-bottom: 10px;
+    }
+
+    p.doc-subtitle {
+      font-size: 16px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 18px 22px;
+      border-radius: var(--radius);
+      font-size: 13px;
+    }
+
+    .meta-item strong {
+      display: block;
+      color: var(--dark);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+
+    .meta-item a {
+      color: var(--primary);
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    /* Headings */
+    h2 {
+      font-size: 21px;
+      font-weight: 800;
+      color: var(--dark);
+      margin: 40px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.3px;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--dark);
+      margin: 22px 0 10px;
+    }
+
+    p { margin-bottom: 14px; }
+
+    ul, ol {
+      margin-left: 22px;
+      margin-bottom: 16px;
+    }
+
+    li { margin-bottom: 6px; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 13.5px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--dark);
+      text-align: left;
+      padding: 12px 14px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) { background: #fafbfc; }
+
+    /* Diagrams */
+    .mermaid {
+      background: #fafbfc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+      overflow-x: auto;
+    }
+
+    /* Callout Card */
+    .callout {
+      background: #f0fdf4;
+      border-left: 4px solid var(--success);
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      color: #166534;
+      font-size: 13.5px;
+    }
+
+    .callout strong { color: #14532d; }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12.5px;
+    }
+
+    /* Print Specific Styles */
+    @media print {
+      body {
+        background: #ffffff !important;
+        font-size: 12pt;
+      }
+      .no-print { display: none !important; }
+      .doc-container {
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+      }
+      h2 {
+        page-break-after: avoid;
+        margin-top: 25pt;
+      }
+      table, .mermaid {
+        page-break-inside: avoid;
+      }
+      @page {
+        margin: 15mm 12mm;
+        size: A4;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="doc-container">
+    
+    <!-- Print / Download Button -->
+    <div class="action-bar no-print">
+      <button class="btn-download" onclick="window.print()">
+        📥 Download / Print as PDF
+      </button>
+    </div>
+
+    <!-- Header Section -->
+    <header class="cover-header">
+      <span class="badge-pill">Official Startup Project Specification</span>
+      <h1 class="doc-title">LAUNDTIME: Smart On-Demand Laundry & Logistics Platform</h1>
+      <p class="doc-subtitle">Executive Technical Architecture, State Machine Workflow, System Models & Commercial Strategy</p>
+
+      <div class="meta-grid">
+        <div class="meta-item">
+          <strong>Founder & Lead Developer</strong>
+          Athithyan D
+        </div>
+        <div class="meta-item">
+          <strong>Customer Web App</strong>
+          <a href="https://laundtime-customer-app.onrender.com" target="_blank">laundtime-customer-app</a>
+        </div>
+        <div class="meta-item">
+          <strong>Partner Fleet Portal</strong>
+          <a href="https://laundtime-partner-app.onrender.com" target="_blank">laundtime-partner-app</a>
+        </div>
+        <div class="meta-item">
+          <strong>Super Admin Command</strong>
+          <a href="https://laundtime-admin-panel.onrender.com" target="_blank">laundtime-admin-panel</a>
+        </div>
+        <div class="meta-item">
+          <strong>Cloud API Backend</strong>
+          <a href="https://laundtime-backend.onrender.com" target="_blank">laundtime-backend</a>
+        </div>
+        <div class="meta-item">
+          <strong>Database</strong>
+          MongoDB Atlas Cloud Cluster
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Sections -->
+    <section>
+      <h2>1. Executive Summary</h2>
+      <p>
+        <strong>LaundTime</strong> is a full-stack, cloud-native urban laundry and garment logistics ecosystem designed to bridge consumers, local service partners/delivery riders, and platform administrators into one frictionless, real-time operating framework.
+      </p>
+      <p>
+        By uniting React, Vite, Node.js, Express, MongoDB Atlas, and unidirectional Server-Sent Events (SSE), LaundTime replaces traditional offline laundry bottlenecks with transparent per-piece & weight pricing, live doorstep tracking, digital wallet checkouts, and a persistent AI-powered Fabric Care Assistant.
+      </p>
+    </section>
+
+    <section>
+      <h2>2. System Architecture & Multi-App Topology</h2>
+      <p>
+        LaundTime operates via a decoupled 3-tier frontend topology communicating with an event-driven RESTful API:
+      </p>
+
+      <div class="mermaid">
+graph LR
+    C["Customer App (React)"] <-->|"REST APIs<br/>Orders & Tracking"| B["Cloud API Backend<br/>(Node.js / Express)"]
+    P["Partner Fleet App (Vite)"] <-->|"REST APIs<br/>Dispatches & Payouts"| B
+    A["Super Admin Panel (Vite)"] <-->|"SSE Push & Admin REST<br/>Live Oversight"| B
+    B <-->|"Clustered Mongoose ODM"| DB[("MongoDB Atlas Cloud DB")]
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Application Portal</th>
+            <th>Technology</th>
+            <th>Primary Purpose</th>
+            <th>Live URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Customer Web App</strong></td>
+            <td>React 18, React Router v6, Context API</td>
+            <td>Garment selection, KG calculator, digital wallet, order tracking, voice AI assistant</td>
+            <td><code>laundtime-customer-app.onrender.com</code></td>
+          </tr>
+          <tr>
+            <td><strong>Partner Fleet App</strong></td>
+            <td>React 18, Vite, CSS Modules</td>
+            <td>Partner onboarding, order claim, milestone status updating, commission settlements</td>
+            <td><code>laundtime-partner-app.onrender.com</code></td>
+          </tr>
+          <tr>
+            <td><strong>Super Admin Dashboard</strong></td>
+            <td>React 18, Vite, Server-Sent Events (SSE)</td>
+            <td>Real-time SSE live orders feed, partner assignment, customer CRM & analytics</td>
+            <td><code>laundtime-admin-panel.onrender.com</code></td>
+          </tr>
+          <tr>
+            <td><strong>Central API Backend</strong></td>
+            <td>Node.js, Express.js, JWT, Mongoose</td>
+            <td>State machine enforcement, auth token validation, SSE live streams, order routes</td>
+            <td><code>laundtime-backend.onrender.com</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>3. End-to-End Order Lifecycle State Machine</h2>
+      <p>
+        Every booking strictly adheres to an automated state machine to ensure zero synchronization discrepancies between Customer, Partner, and Admin panels:
+      </p>
+
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> pending: Customer Places Booking
+    pending --> confirmed: Partner Accepts OR Admin Assigns Partner
+    confirmed --> picked: Partner Collects Laundry from Doorstep
+    picked --> processing: Clothes Enter Wash Cycle at Facility
+    processing --> ready: Steam Pressed & Packaged
+    ready --> delivered: Delivery Fleet Delivers to Customer Doorstep
+    delivered --> [*]: Commission Credited & Invoice Finalized
+    
+    pending --> cancelled: Cancelled by Customer / Admin
+    confirmed --> cancelled: Cancelled with Auto Wallet Refund
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Status Milestone</th>
+            <th>Responsible Role</th>
+            <th>Pre-Condition</th>
+            <th>System Action & Real-Time Sync</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>pending</code></td>
+            <td>Customer</td>
+            <td>Checkout submission</td>
+            <td>Order saved in Atlas, Tracking ID issued, Admin SSE notification triggered</td>
+          </tr>
+          <tr>
+            <td><code>confirmed</code></td>
+            <td>Partner / Admin</td>
+            <td>Order in pending state</td>
+            <td>Assigned to partner fleet, Customer view updates to "Confirmed"</td>
+          </tr>
+          <tr>
+            <td><code>picked</code></td>
+            <td>Pickup Partner</td>
+            <td>Garments picked from doorstep</td>
+            <td>Pickup timestamp logged, order enters logistics transit</td>
+          </tr>
+          <tr>
+            <td><code>processing</code></td>
+            <td>Washing Partner</td>
+            <td>Received at facility</td>
+            <td>Washing, detergent sanitization, or dry-cleaning initiated</td>
+          </tr>
+          <tr>
+            <td><code>ready</code></td>
+            <td>Washing Partner</td>
+            <td>Cleaning & ironing finished</td>
+            <td>Packaged and queued for delivery fleet dispatch</td>
+          </tr>
+          <tr>
+            <td><code>delivered</code></td>
+            <td>Delivery Partner</td>
+            <td>Doorstep handover complete</td>
+            <td>Partner commission credited, customer marked completed, metrics incremented</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>4. Movable & Circular AI Garment Care Assistant</h2>
+      <p>
+        LaundTime includes a built-in interactive AI assistant engineered specifically for fabric recommendations and voice-assisted customer service:
+      </p>
+      <ul>
+        <li><strong>62px Circular Bubble:</strong> Styled with modern gradient and animated live green pulse indicator.</li>
+        <li><strong>Free Drag-and-Drop Mobility:</strong> Draggable anywhere across the viewport using unified Pointer Events (desktop mouse and mobile touch).</li>
+        <li><strong>Smart Dynamic Viewport Anchoring:</strong> Automatically positions the chat popover cleanly above or below the bubble depending on screen coordinates so it never overflows off-screen.</li>
+        <li><strong>Position Memory:</strong> Persists user placement in <code>localStorage</code> across refreshes.</li>
+        <li><strong>Voice Speech Recognition:</strong> Built-in Web Speech API enables hands-free voice inquiries in English and Indian accents.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>5. Business Model & Monetization Strategy</h2>
+      <p>
+        The platform operates on a robust, multi-stream urban commerce monetization model:
+      </p>
+      <ul>
+        <li><strong>Per-Order Service Commission (15%–20%):</strong> Captured on every completed transaction across partner washing facilities and delivery fleets.</li>
+        <li><strong>Recurring KG & VIP Subscriptions:</strong> Pre-paid monthly laundry plans offering predictable recurring revenue and customer retention.</li>
+        <li><strong>Express Surcharge:</strong> Premium markup for guaranteed 6-hour emergency turnaround wash & dry.</li>
+        <li><strong>B2B Commercial Accounts:</strong> Institutional contracts for boutique hotels, fitness clubs, and serviced apartments.</li>
+      </ul>
+
+      <div class="callout">
+        <strong>Technical Highlight:</strong> Built with zero hardcoded local dependencies, resilient DNS SRV resolvers, and automatic guest-order customer auto-enrollment to guarantee 100% order capture into cloud MongoDB Atlas.
+      </div>
+    </section>
+
+    <section>
+      <h2>6. Strategic Technology Roadmap</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Milestone</th>
+            <th>Target Objective</th>
+            <th>Deliverables</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Phase 1 (Completed)</strong></td>
+            <td>Full 3-Portal Ecosystem</td>
+            <td>React customer app, Vite partner app, Vite admin panel, MongoDB Atlas, SSE real-time sync, Movable AI Assistant</td>
+          </tr>
+          <tr>
+            <td><strong>Phase 2 (Upcoming)</strong></td>
+            <td>Native PWA & Gateway Integrations</td>
+            <td>Progressive Web App install wrappers, Automated WhatsApp order updates, Razorpay & Stripe direct gateways</td>
+          </tr>
+          <tr>
+            <td><strong>Phase 3 (Expansion)</strong></td>
+            <td>Fleet Geofencing & Hub Routing</td>
+            <td>Live GPS rider location mapping, auto-batch geographic allocation, multi-city hub operations</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer style="margin-top: 50px; padding-top: 20px; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 12px;">
+      LAUNDTIME · Designed & Built by Athithyan D · Production Ready
+    </footer>
+
+  </div>
+
+</body>
+</html>
