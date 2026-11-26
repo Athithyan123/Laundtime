@@ -66,7 +66,17 @@ export default function Layout() {
           <h1 className="page-title">Admin Control Panel</h1>
           <div className="topbar-right">
             <span className="topbar-badge">🟢 Live</span>
-            <span className="topbar-admin">{admin?.name || 'Admin'}</span>
+            <div className="topbar-user">
+              <span className="topbar-avatar">{admin?.name?.[0]?.toUpperCase() || 'A'}</span>
+              <span className="topbar-admin">{admin?.name || 'Admin'}</span>
+            </div>
+            <button
+              className="topbar-logout-btn"
+              onClick={handleLogout}
+              title="Sign out of Admin Panel"
+            >
+              🚪 Logout
+            </button>
           </div>
         </header>
         <div className="page-body">
