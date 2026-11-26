@@ -558,6 +558,7 @@ function OrdersPage({ type, partner: topPartner }) {
         return <OrderCard
           key={order._id}
           order={order}
+          partner={partner}
           available={available}
           action={statusAction}
           busy={working === order._id}
@@ -570,12 +571,159 @@ function OrdersPage({ type, partner: topPartner }) {
   </>;
 }
 
-function OrderCard({ order, available, action, busy, onAccept, onReject, onStatus }) {
+// ─── Interactive Live Customer Location Map for Delivery Partner ─────────────
+function CustomerLocationMap({ order, partnerLocation, onClose }) {
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+
+  const custLat = order.customerLocation?.lat || order.customerDetails?.lat || 13.0827;
+  const custLng = order.customerLocation?.lng || order.customerDetails?.lng || 80.2707;
+  const custName = customerName(order);
+  const custAddress = locationText(order) || "Customer Address";
+  const custPhone = order.customerDetails?.phone || order.user?.phone || "";
+
+  const partLat = partnerLocation?.lat || custLat + 0.015;
+  const partLng = partnerLocation?.lng || custLng + 0.015;
+
+  const distanceText = order.distanceKm ? `${order.distanceKm} km` : "2.1 km";
+  const etaText = order.etaMinutes ? `${order.etaMinutes} mins` : "7 mins";
+
+  useEffect(() => {
+    if (!window.L || !mapContainerRef.current) return;
+    const L = window.L;
+
+    if (!mapInstanceRef.current) {
+      const map = L.map(mapContainerRef.current, {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([custLat, custLng], 14);
+
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+        maxZoom: 19,
+        subdomains: "abcd"
+      }).addTo(map);
+
+      // Customer Pin (🏠)
+      const customerIcon = L.divIcon({
+        className: "partner-map-pin customer-pin",
+        html: `<div class="pulse-ring-red"></div><div class="pin-badge-red">🏠</div>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+      });
+      L.marker([custLat, custLng], { icon: customerIcon })
+        .addTo(map)
+        .bindPopup(`<b>${custName} (Customer Destination)</b><br/>${custAddress}`);
+
+      // Delivery Partner Pin (🛵)
+      const partnerIcon = L.divIcon({
+        className: "partner-map-pin vehicle-pin",
+        html: `<div class="pulse-ring-green"></div><div class="pin-badge-green">🛵</div>`,
+        iconSize: [44, 44],
+        iconAnchor: [22, 22]
+      });
+      L.marker([partLat, partLng], { icon: partnerIcon })
+        .addTo(map)
+        .bindPopup(`<b>Your Current Location</b><br/>En route to customer`);
+
+      // Route line
+      const waypoints = [
+        [partLat, partLng],
+        [(partLat + custLat) / 2 + 0.001, (partLng + custLng) / 2 - 0.001],
+        [custLat, custLng]
+      ];
+      L.polyline(waypoints, {
+        color: "#2563eb",
+        weight: 5,
+        opacity: 0.85,
+        dashArray: "6, 6"
+      }).addTo(map);
+
+      const bounds = L.latLngBounds([[custLat, custLng], [partLat, partLng]]);
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+
+      mapInstanceRef.current = map;
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [custLat, custLng, partLat, partLng, custName, custAddress]);
+
+  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${custLat},${custLng}`;
+
+  return (
+    <div className="customer-map-modal-overlay" onClick={onClose}>
+      <div className="customer-map-modal" onClick={e => e.stopPropagation()}>
+        <div className="customer-map-modal-header">
+          <div>
+            <h3>📍 Customer Live Location & Route</h3>
+            <p>{custName} · {custAddress}</p>
+          </div>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close modal">✕</button>
+        </div>
+
+        {/* Live Route Map Canvas */}
+        <div className="partner-leaflet-wrapper">
+          <div ref={mapContainerRef} className="partner-leaflet-canvas"></div>
+
+          {/* Floating Trip Status */}
+          <div className="partner-map-stat-pill">
+            <span>🛵 <strong>{distanceText}</strong> to customer</span>
+            <span className="stat-separator">•</span>
+            <span>Est. ~<strong>{etaText}</strong></span>
+          </div>
+        </div>
+
+        {/* Action Controls */}
+        <div className="customer-map-modal-footer">
+          <div className="nav-info-col">
+            <span className="customer-phone-label">Customer Contact:</span>
+            <strong>{custPhone || "Available on dial"}</strong>
+          </div>
+          <div className="nav-btn-group">
+            {custPhone && (
+              <a href={`tel:${custPhone}`} className="button button-secondary button-phone">
+                📞 Call Customer
+              </a>
+            )}
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button button-primary button-gmaps"
+            >
+              🗺️ Open in Google Maps Navigation <ArrowUpRight size={15} />
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OrderCard({ order, partner, available, action, busy, onAccept, onReject, onStatus }) {
+  const [showMap, setShowMap] = useState(false);
   const date = order.customerDetails?.pickupDate;
   const itemCount = order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   const distance = order.distanceKm ? `${order.distanceKm} KM away` : "Nearby";
 
+  const custLat = order.customerLocation?.lat || order.customerDetails?.lat || 13.0827;
+  const custLng = order.customerLocation?.lng || order.customerDetails?.lng || 80.2707;
+  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${custLat},${custLng}`;
+
   return <article className="order-card">
+    {/* Map Modal */}
+    {showMap && (
+      <CustomerLocationMap
+        order={order}
+        partnerLocation={partner?.location}
+        onClose={() => setShowMap(false)}
+      />
+    )}
+
     <div className="order-card-head">
       <div className="order-ref">
         <span>ORDER</span>
@@ -583,10 +731,18 @@ function OrderCard({ order, available, action, busy, onAccept, onReject, onStatu
         <span className="order-date"><CalendarDays size={13} /> {shortDate(date)}</span>
       </div>
       <div className="head-right-badges">
-        {available && (
+        {available ? (
           <span className="distance-badge">
             <Navigation size={12} /> {distance} · 7 KM Match
           </span>
+        ) : (
+          <button
+            className="view-map-pill"
+            onClick={() => setShowMap(true)}
+            title="View customer's live location on map"
+          >
+            📍 Live Customer Map
+          </button>
         )}
         <StatusBadge status={order.status} />
       </div>
@@ -599,7 +755,23 @@ function OrderCard({ order, available, action, busy, onAccept, onReject, onStatu
           <span>{order.customerDetails?.phone || order.user?.phone || "Phone unavailable"}</span>
         </div>
       </div>
-      <div className="order-info"><MapPin size={16} /><div><span>Pickup Address</span><strong>{locationText(order) || "Address not provided"}</strong></div></div>
+
+      <div className="order-info">
+        <MapPin size={16} />
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
+            <span>Pickup / Delivery Address</span>
+            <button
+              className="inline-map-link"
+              onClick={() => setShowMap(true)}
+            >
+              📍 Live Map
+            </button>
+          </div>
+          <strong>{locationText(order) || "Address not provided"}</strong>
+        </div>
+      </div>
+
       <div className="order-info"><Shirt size={16} /><div><span>Items</span><strong>{itemCount || order.items?.length || 0} pieces <i>·</i> {order.items?.map((item) => item.name).filter(Boolean).slice(0, 2).join(", ") || "Laundry service"}</strong></div></div>
       <div className="order-value"><span>Payout Est.</span><strong>{money((order.totalAmount || 100) * 0.15)}</strong></div>
     </div>
@@ -628,16 +800,36 @@ function OrderCard({ order, available, action, busy, onAccept, onReject, onStatu
               {busy ? <><span className="button-loader" /> Accepting</> : <>Accept Order <ArrowRight size={15} /></>}
             </button>
           </div>
-        ) : action ? (
-          <button
-            className={`button button-small ${action[0] === "delivered" ? "button-success" : "button-primary"}`}
-            disabled={busy}
-            onClick={() => onStatus(action[0])}
-          >
-            {busy ? <><span className="button-loader" /> Updating</> : <>{action[1]} <ArrowRight size={15} /></>}
-          </button>
         ) : (
-          <span className="no-action"><CheckCircle2 size={15} /> Up to date</span>
+          <div className="assigned-action-buttons">
+            <button
+              className="button button-secondary button-small button-map-trigger"
+              onClick={() => setShowMap(true)}
+              title="View customer location live on interactive map"
+            >
+              📍 View Map
+            </button>
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button button-secondary button-small button-gmaps-direct"
+              title="Open Google Maps Navigation"
+            >
+              🗺️ Navigate
+            </a>
+            {action ? (
+              <button
+                className={`button button-small ${action[0] === "delivered" ? "button-success" : "button-primary"}`}
+                disabled={busy}
+                onClick={() => onStatus(action[0])}
+              >
+                {busy ? <><span className="button-loader" /> Updating</> : <>{action[1]} <ArrowRight size={15} /></>}
+              </button>
+            ) : (
+              <span className="no-action"><CheckCircle2 size={15} /> Up to date</span>
+            )}
+          </div>
         )}
       </div>
     </div>

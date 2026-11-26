@@ -128,3 +128,276 @@
 .button-accept:hover {
   background: #1d4ed8 !important;
 }
+
+
+/* ─── Customer Live Location Map Modal & Pins for Delivery Partner ──── */
+.view-map-pill {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 3px 8px;
+  border-radius: 50px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.view-map-pill:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.inline-map-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+.inline-map-link:hover {
+  color: #1d4ed8;
+}
+
+.assigned-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.button-map-trigger {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe !important;
+}
+.button-map-trigger:hover {
+  background: #dbeafe !important;
+}
+.button-gmaps-direct {
+  background: #f8fafc !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.button-gmaps-direct:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Modal Overlay */
+.customer-map-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: modalFadeIn .2s ease;
+}
+
+.customer-map-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+}
+
+.customer-map-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.customer-map-modal-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.customer-map-modal-header p {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: #64748b;
+  max-width: 480px;
+}
+.modal-close-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all .2s;
+}
+.modal-close-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.partner-leaflet-wrapper {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  background: #e2e8f0;
+}
+.partner-leaflet-canvas {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.partner-map-stat-pill {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
+  padding: 8px 14px;
+  border-radius: 50px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e293b;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat-separator {
+  color: #94a3b8;
+}
+
+.customer-map-modal-footer {
+  padding: 14px 20px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.nav-info-col {
+  display: flex;
+  flex-direction: column;
+}
+.customer-phone-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.nav-info-col strong {
+  font-size: 12px;
+  color: #0f172a;
+}
+.nav-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.button-phone {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  text-decoration: none;
+}
+.button-phone:hover {
+  background: #e2e8f0 !important;
+}
+.button-gmaps {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border: none !important;
+  text-decoration: none;
+  font-weight: 700;
+}
+.button-gmaps:hover {
+  background: #059669 !important;
+}
+
+/* Map Markers */
+.partner-map-pin {
+  background: none;
+  border: none;
+}
+.pin-badge-red {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+  position: relative;
+  z-index: 10;
+}
+.pin-badge-green {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #10b981;
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.6);
+  position: relative;
+  z-index: 10;
+}
+.pulse-ring-red {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 3px solid #ef4444;
+  animation: rippleRingRed 2s ease-out infinite;
+  pointer-events: none;
+}
+.pulse-ring-green {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.35);
+  animation: rippleRingGreen 1.8s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes rippleRingRed {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+@keyframes rippleRingGreen {
+  0% { transform: scale(0.5); opacity: 0.8; }
+  100% { transform: scale(1.8); opacity: 0; }
+}

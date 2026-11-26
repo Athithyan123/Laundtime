@@ -257,11 +257,38 @@ router.get("/orders/available", protect, withPartner, async (req, res) => {
 router.get("/orders/assigned", protect, withPartner, async (req, res) => {
   try {
     const id = req.partner._id;
+    const pLat = req.partner.location?.lat || 13.0827;
+    const pLng = req.partner.location?.lng || 80.2707;
+
     const orders = await Order.find({
       $or: [{ pickupPartner: id }, { washingPartner: id }, { deliveryPartner: id }]
     }).populate("user", "name phone").sort({ updatedAt: -1 });
 
-    res.json({ orders });
+    const enrichedOrders = orders.map(order => {
+      let custLat = order.customerLocation?.lat || order.customerDetails?.lat;
+      let custLng = order.customerLocation?.lng || order.customerDetails?.lng;
+      if (!custLat || !custLng) {
+        const coords = resolveCoordinates(order.customerDetails?.city + " " + order.customerDetails?.address);
+        custLat = coords.lat;
+        custLng = coords.lng;
+      }
+
+      const distanceKm = getDistanceKm(pLat, pLng, custLat, custLng);
+      const etaMinutes = Math.max(3, Math.round((distanceKm / 22) * 60));
+
+      return {
+        ...order.toObject(),
+        customerLocation: {
+          lat: custLat,
+          lng: custLng,
+          address: order.customerDetails?.address || order.customerLocation?.address || "Customer Address"
+        },
+        distanceKm,
+        etaMinutes
+      };
+    });
+
+    res.json({ success: true, orders: enrichedOrders });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
