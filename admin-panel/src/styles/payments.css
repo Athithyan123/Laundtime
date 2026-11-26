@@ -14,3 +14,20 @@
 .comm-item strong { font-size: 1.1rem; color: var(--primary); }
 .amount-pending { color: #f59e0b; font-weight: 700; }
 .amount-paid    { color: #10b981; font-weight: 700; }
+
+@media (max-width: 640px) {
+  .pay-summary {
+    grid-template-columns: 1fr;
+    gap: .75rem;
+  }
+  .comm-grid {
+    grid-template-columns: 1fr;
+    gap: .5rem;
+  }
+  .pay-card {
+    padding: 1rem;
+  }
+  .commission-guide {
+    padding: 1rem;
+  }
+}

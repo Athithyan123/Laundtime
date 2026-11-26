@@ -89,20 +89,22 @@ export default function Dashboard() {
             {recent.length === 0 ? (
               <div className="empty-state">No orders yet. Customer books an order and it appears here.</div>
             ) : (
-              <table className="dash-table">
-                <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th>Amount</th><th>When</th></tr></thead>
-                <tbody>
-                  {recent.map(o => (
-                    <tr key={o._id}>
-                      <td><strong>{o.trackingId || o._id?.slice(-6)}</strong></td>
-                      <td>{o.customerDetails?.name}</td>
-                      <td><span className="status-pill" style={{background:statusColor[o.status]+'22',color:statusColor[o.status]}}>{o.status}</span></td>
-                      <td>₹{o.totalAmount}</td>
-                      <td className="muted">{timeAgo(o.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="dash-table-wrap">
+                <table className="dash-table">
+                  <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th>Amount</th><th>When</th></tr></thead>
+                  <tbody>
+                    {recent.map(o => (
+                      <tr key={o._id}>
+                        <td><strong>{o.trackingId || o._id?.slice(-6)}</strong></td>
+                        <td>{o.customerDetails?.name}</td>
+                        <td><span className="status-pill" style={{background:statusColor[o.status]+'22',color:statusColor[o.status]}}>{o.status}</span></td>
+                        <td>₹{o.totalAmount}</td>
+                        <td className="muted">{timeAgo(o.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 

@@ -17,16 +17,41 @@ export default function Layout() {
   const { admin, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const closeMobile = () => setMobileOpen(false);
 
   return (
-    <div className={`layout ${collapsed ? 'collapsed' : ''}`}>
+    <div className={`layout ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-nav-active' : ''}`}>
+      {/* ── Mobile Backdrop Overlay ── */}
+      {mobileOpen && (
+        <div 
+          className="sidebar-backdrop" 
+          onClick={closeMobile} 
+          aria-label="Close navigation overlay"
+        />
+      )}
+
       {/* ── Sidebar ── */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-brand">
-          <span className="brand-icon">🧺</span>
-          {!collapsed && <span className="brand-name">LaundTime</span>}
+          <div className="brand-left">
+            <span className="brand-icon">🧺</span>
+            {(!collapsed || mobileOpen) && <span className="brand-name">LaundTime</span>}
+          </div>
+          <button 
+            className="mobile-close-btn" 
+            onClick={closeMobile} 
+            title="Close menu" 
+            aria-label="Close menu"
+          >
+            ✕
+          </button>
         </div>
 
         <button className="collapse-btn" onClick={() => setCollapsed(c => !c)}>
@@ -35,15 +60,20 @@ export default function Layout() {
 
         <nav className="sidebar-nav">
           {NAV.map(({ to, icon, label }) => (
-            <NavLink key={to} to={to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <NavLink 
+              key={to} 
+              to={to} 
+              onClick={closeMobile}
+              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            >
               <span className="nav-icon">{icon}</span>
-              {!collapsed && <span className="nav-label">{label}</span>}
+              {(!collapsed || mobileOpen) && <span className="nav-label">{label}</span>}
             </NavLink>
           ))}
         </nav>
 
         <div className="sidebar-footer">
-          {!collapsed && (
+          {(!collapsed || mobileOpen) && (
             <div className="admin-info">
               <div className="admin-avatar">
                 {admin?.name?.[0]?.toUpperCase() || 'A'}
@@ -54,8 +84,8 @@ export default function Layout() {
               </div>
             </div>
           )}
-          <button className="logout-btn" onClick={handleLogout} title="Logout">
-            🚪 {!collapsed && 'Logout'}
+          <button className="logout-btn" onClick={() => { closeMobile(); handleLogout(); }} title="Logout">
+            🚪 {(!collapsed || mobileOpen) && 'Logout'}
           </button>
         </div>
       </aside>
@@ -63,7 +93,21 @@ export default function Layout() {
       {/* ── Main area ── */}
       <main className="main-content">
         <header className="topbar">
-          <h1 className="page-title">Admin Control Panel</h1>
+          <div className="topbar-left">
+            <button 
+              className="hamburger-btn" 
+              onClick={() => setMobileOpen(o => !o)} 
+              title="Toggle Menu"
+              aria-label="Toggle navigation menu"
+            >
+              ☰
+            </button>
+            <div className="topbar-title-wrap">
+              <h1 className="page-title">Admin Control Panel</h1>
+              <span className="mobile-brand-pill">🧺 LaundTime</span>
+            </div>
+          </div>
+
           <div className="topbar-right">
             <span className="topbar-badge">🟢 Live</span>
             <div className="topbar-user">
@@ -75,7 +119,7 @@ export default function Layout() {
               onClick={handleLogout}
               title="Sign out of Admin Panel"
             >
-              🚪 Logout
+              🚪 <span className="logout-text">Logout</span>
             </button>
           </div>
         </header>
